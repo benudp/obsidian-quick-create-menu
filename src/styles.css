@@ -1,56 +1,114 @@
-/* Container for each target in settings to separate them visually */
-.quick-note-target-setting {
+/* --- Settings List Container --- */
+.quick-note-list {
+    margin-top: 20px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Remove the "Card" feel and make it a clean row */
+.quick-note-target-card {
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background-color: transparent; /* Cleaner than the grey cards */
+    transition: background-color 0.15s ease;
+}
+
+.quick-note-target-card:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* --- Typography & Icons --- */
+.quick-note-setting-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    color: var(--text-accent);
+    opacity: 0.8;
+}
+
+.quick-note-setting-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* The "File Path" Preview Text */
+.quick-note-preview-text {
+    font-family: var(--font-monospace);
+    font-size: 11px;
+    color: var(--text-muted);
+    background-color: var(--background-primary-alt);
+    padding: 2px 6px;
     border: 1px solid var(--background-modifier-border);
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    background-color: var(--background-secondary);
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
 }
 
-/* Ensure the icon in the header aligns correctly */
-.view-action.quick-note-action {
+/* --- Action Buttons (Icons) --- */
+.setting-item-control .extra-setting-button {
+    padding: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.setting-item-control .extra-setting-button:hover {
+    opacity: 1;
     color: var(--text-normal);
 }
-.view-action.quick-note-action:hover {
-    color: var(--text-normal);
+
+.setting-item-control .extra-setting-button.mod-warning:hover {
+    color: var(--text-error);
 }
 
-
-/* ... Previous CSS ... */
-
-/* The new Custom Popup Container */
+/* --- Modal & Popups --- */
 .quick-note-popup {
-    position: absolute;
-    background-color: var(--background-secondary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-l);
-    box-shadow: var(--shadow-s);
-    padding: 6px 0;
+    background-color: var(--background-menu);
+    border: 1px solid var(--background-modifier-border-focus);
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-l);
+    padding: 4px;
     z-index: var(--layer-menu);
-    min-width: 180px;
-    max-width: 250px;
-    display: flex;
-    flex-direction: column;
+    min-width: 200px;
 }
 
-/* Menu Items */
 .quick-note-popup-item {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
+    padding: 6px 10px;
+    border-radius: var(--radius-s);
     cursor: pointer;
     font-size: var(--font-ui-small);
     color: var(--text-normal);
-    transition: background-color 0.1s ease;
 }
 
 .quick-note-popup-item:hover {
     background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
 }
 
 .quick-note-popup-item .popup-icon {
-    margin-right: 8px;
-    color: var(--text-muted);
+    margin-right: 10px;
     display: flex;
-    align-items: center;
+    color: var(--text-muted);
+}
+
+/* --- Modal Preview State --- */
+.quick-note-preview {
+    margin-top: 16px;
+    padding: 12px;
+    background-color: var(--background-secondary-alt);
+    border: 1px dashed var(--background-modifier-border);
+    border-radius: 6px;
+    font-size: var(--font-ui-smaller);
+}
+
+.quick-note-preview strong {
+    color: var(--text-accent);
+    margin-right: 8px;
+}
+
+.quick-note-empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
 }

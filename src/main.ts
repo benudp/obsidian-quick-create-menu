@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Notice, setIcon } from 'obsidian'; // Import setIcon
+import { Plugin, WorkspaceLeaf, Notice, setIcon } from 'obsidian';
 import { QuickNoteSettings, DEFAULT_SETTINGS } from './types';
 import { QuickNoteSettingTab } from './settings';
 import { ActionHandler } from './actions';
@@ -18,11 +18,10 @@ export default class QuickNotePlugin extends Plugin {
             id: 'open-quick-create-menu',
             name: 'Open Quick Create Menu',
             callback: () => {
-                 // Fix: Use getMostRecentLeaf instead of activeLeaf
-                 const leaf = this.app.workspace.getMostRecentLeaf();
-                 if (leaf) {
-                     new Notice("Use the header icon to open the menu.");
-                 }
+                const leaf = this.app.workspace.getMostRecentLeaf();
+                if (leaf) {
+                    new Notice("Use the + icon in the header to open the menu.");
+                }
             }
         });
 
@@ -63,11 +62,9 @@ export default class QuickNotePlugin extends Plugin {
                     const btn = container.createDiv({ cls: 'clickable-icon view-action quick-note-action' });
                     btn.setAttribute('aria-label', 'Quick Create Note');
                     
-                    // FIX: Use standard setIcon function
                     setIcon(btn, 'plus-circle');
                     
                     btn.addEventListener('click', (e) => {
-                        // Pass the button element to anchor the popup
                         this.actionHandler.showCustomPopup(e, btn, this.settings.targets);
                     });
 
