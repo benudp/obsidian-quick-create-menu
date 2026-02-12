@@ -1,7 +1,7 @@
-import { App, PluginSettingTab, Setting, Notice, setIcon, Menu } from "obsidian";
+import { App, PluginSettingTab, Setting, Notice, setIcon } from "obsidian";
 import QuickNotePlugin from "./main";
-import { NoteTarget } from "./types";
 import { TargetEditModal } from "./modal";
+import Sortable from "sortablejs";
 
 export class QuickNoteSettingTab extends PluginSettingTab {
   plugin: QuickNotePlugin;
@@ -36,7 +36,7 @@ export class QuickNoteSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Manage Targets")
-      .setDesc("Create and reorder your note generation targets.")
+      .setDesc("Drag to reorder. These appear in your quick menu.")
       .addButton((btn) =>
         btn
           .setButtonText("Add New Target")
@@ -46,6 +46,7 @@ export class QuickNoteSettingTab extends PluginSettingTab {
               this.plugin.settings.targets.push(target);
               await this.plugin.saveSettings();
               this.display();
+              new Notice(`Added "${target.label}"`);
             }).open();
           })
       );
@@ -53,176 +54,120 @@ export class QuickNoteSettingTab extends PluginSettingTab {
     // --- Target List ---
     const listContainer = containerEl.createDiv({ cls: "quick-note-list" });
 
+    // SortableJS Init
+    Sortable.create(listContainer, {
+      handle: ".quick-note-drag-handle",
+      animation: 150,
+      ghostClass: "quick-note-ghost",
+      dragClass: "quick-note-drag",
+      touchStartThreshold: 3,
+      onEnd: async (evt) => {
+        const { oldIndex, newIndex } = evt;
+        if (oldIndex !== undefined && newIndex !== undefined && oldIndex !== newIndex) {
+          const targets = this.plugin.settings.targets;
+          const [item] = targets.splice(oldIndex, 1);
+          targets.splice(newIndex, 0, item);
+          await this.plugin.saveSettings();
+          new Notice("Reordered targets");
+        }
+      },
+    });
+
     if (this.plugin.settings.targets.length === 0) {
-      const empty = listContainer.createDiv({ cls: "quick-note-empty-state" });
-      empty.setText("No targets configured yet.");
+      listContainer.createDiv({ cls: "quick-note-empty-state", text: "No targets configured yet." });
       return;
     }
 
-    const cardsContainer = containerEl.createDiv({ cls: "quick-note-cards" });
-
     this.plugin.settings.targets.forEach((target, index) => {
-      const card = cardsContainer.createDiv({ 
-        cls: `quick-note-card ${!target.enabled ? 'quick-note-card-disabled' : ''}`
-      });
+      const setting = new Setting(listContainer);
+      setting.settingEl.addClass("quick-note-item");
+      setting.settingEl.dataset.index = index.toString();
 
-      // Card content (tappable)
-      const cardContent = card.createDiv({ cls: "quick-note-card-content" });
+      // 1. Create Drag Handle (PREPENDED independently)
+      // This places it outside the text flow, allowing vertical centering
+      const dragHandle = createDiv({ cls: "quick-note-drag-handle" });
+      setIcon(dragHandle, "grip-vertical");
+      setting.settingEl.prepend(dragHandle);
+
+      // 2. Name Section (Icon + Label)
+      const nameContainer = createDiv({ cls: "quick-note-name-container" });
+      const iconSpan = nameContainer.createSpan({ cls: "quick-note-setting-icon" });
+      setIcon(iconSpan, this.getIconForType(target.type));
       
-      // Left: Icon and Label
-      const leftSection = cardContent.createDiv({ cls: "quick-note-card-left" });
-      
-      const iconSpan = leftSection.createSpan({ cls: "quick-note-card-icon" });
-      const iconName = this.getIconForType(target.type);
-      setIcon(iconSpan, iconName);
-      
-      const labelSpan = leftSection.createSpan({ cls: "quick-note-card-label" });
+      const labelSpan = nameContainer.createSpan({ cls: "quick-note-label-text" });
       labelSpan.setText(target.label);
-
-      // Right: Menu button
-      const rightSection = cardContent.createDiv({ cls: "quick-note-card-right" });
+      labelSpan.title = target.label; // Tooltip for full text
       
-      const menuButton = rightSection.createEl("button", { 
-        cls: "quick-note-card-menu-btn"
-      });
-      menuButton.innerHTML = "⋯";
-      menuButton.setAttribute("aria-label", "Options");
-      
-      // Context menu
-      menuButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.showTargetMenu(target, index, menuButton);
-      });
+      // FIX: Append directly to nameEl to avoid type error
+      setting.nameEl.appendChild(nameContainer);
 
-      // Make whole card tappable for edit
-      cardContent.addEventListener("click", () => {
-        new TargetEditModal(this.app, { ...target }, async (updated) => {
-          this.plugin.settings.targets[index] = updated;
-          await this.plugin.saveSettings();
-          this.display();
-          new Notice(`Updated "${updated.label}"`);
-        }).open();
-      });
-
-      // Subtitle with preview
-      const subtitle = card.createDiv({ cls: "quick-note-card-subtitle" });
+      // 3. Description Section (Preview)
       const previewText = this.getPreviewText(target);
-      subtitle.setText(previewText);
-    });
-  }
+      setting.setDesc(previewText);
 
-  showTargetMenu(target: NoteTarget, index: number, buttonEl: HTMLElement) {
-    const menu = new Menu();
+      // 4. Actions
+      setting.addExtraButton((btn) =>
+        btn
+          .setIcon("pencil")
+          .setTooltip("Edit")
+          .onClick(() => {
+            new TargetEditModal(this.app, { ...target }, async (updated) => {
+              this.plugin.settings.targets[index] = updated;
+              await this.plugin.saveSettings();
+              this.display();
+            }).open();
+          })
+      );
 
-    // Toggle enabled
-    menu.addItem((item) => {
-      item
-        .setTitle(target.enabled ? "Disable" : "Enable")
-        .setIcon(target.enabled ? "x" : "check")
-        .onClick(async () => {
-          target.enabled = !target.enabled;
-          await this.plugin.saveSettings();
-          this.display();
-          new Notice(`${target.enabled ? 'Enabled' : 'Disabled'} "${target.label}"`);
-        });
-    });
-
-    menu.addSeparator();
-
-    // Move up
-    if (index > 0) {
-      menu.addItem((item) => {
-        item
-          .setTitle("Move Up")
-          .setIcon("arrow-up")
+      // Delete Button
+      setting.addExtraButton((btn) => {
+        btn
+          .setIcon("trash")
+          .setTooltip("Delete")
           .onClick(async () => {
-            const temp = this.plugin.settings.targets[index];
-            this.plugin.settings.targets[index] = this.plugin.settings.targets[index - 1];
-            this.plugin.settings.targets[index - 1] = temp;
+            this.plugin.settings.targets.splice(index, 1);
             await this.plugin.saveSettings();
             this.display();
           });
+        btn.extraSettingsEl.addClass("quick-note-delete-btn");
       });
-    }
 
-    // Move down
-    if (index < this.plugin.settings.targets.length - 1) {
-      menu.addItem((item) => {
-        item
-          .setTitle("Move Down")
-          .setIcon("arrow-down")
-          .onClick(async () => {
-            const temp = this.plugin.settings.targets[index];
-            this.plugin.settings.targets[index] = this.plugin.settings.targets[index + 1];
-            this.plugin.settings.targets[index + 1] = temp;
+      // Toggle
+      setting.addToggle((toggle) =>
+        toggle
+          .setValue(target.enabled)
+          .setTooltip("Enable/Disable")
+          .onChange(async (val) => {
+            target.enabled = val;
             await this.plugin.saveSettings();
-            this.display();
-          });
-      });
-    }
+            setting.settingEl.toggleClass("is-disabled", !val);
+          })
+      );
 
-    menu.addSeparator();
-
-    // Duplicate
-    menu.addItem((item) => {
-      item
-        .setTitle("Duplicate")
-        .setIcon("copy")
-        .onClick(async () => {
-          const duplicate = {
-            ...target,
-            id: Date.now().toString(),
-            label: `${target.label} (Copy)`
-          };
-          this.plugin.settings.targets.splice(index + 1, 0, duplicate);
-          await this.plugin.saveSettings();
-          this.display();
-          new Notice(`Duplicated "${target.label}"`);
-        });
+      if (!target.enabled) {
+        setting.settingEl.addClass("is-disabled");
+      }
     });
-
-    // Delete
-    menu.addItem((item) => {
-      item
-        .setTitle("Delete")
-        .setIcon("trash")
-        .onClick(async () => {
-          this.plugin.settings.targets.splice(index, 1);
-          await this.plugin.saveSettings();
-          this.display();
-          new Notice(`Deleted "${target.label}"`);
-        });
-    });
-
-    menu.showAtMouseEvent(buttonEl.getBoundingClientRect() as any);
   }
 
   getIconForType(type: string): string {
     switch (type) {
-      case 'folder': return 'folder';
-      case 'current-folder': return 'folder-open';
-      case 'daily-note': return 'calendar-days';
-      default: return 'file';
+      case "folder": return "folder";
+      case "current-folder": return "folder-open";
+      case "daily-note": return "calendar-days";
+      default: return "file";
     }
   }
 
-  getPreviewText(target: NoteTarget): string {
+  getPreviewText(target: any): string {
     try {
-      if (target.type === 'daily-note') {
-        return 'Opens today\'s daily note';
-      }
-      
+      if (target.type === "daily-note") return "Daily Note";
       // @ts-ignore
-      const dateStr = window.moment().format(target.dateFormat || 'YYYY-MM-DD');
-      const filename = `${target.prefix || ''}${dateStr}.md`;
-      
-      if (target.type === 'folder') {
-        return target.path ? `${target.path}/${filename}` : filename;
-      } else {
-        return `${filename} in current folder`;
-      }
+      const dateStr = window.moment().format(target.dateFormat || "YYYY-MM-DD");
+      const pathPrefix = target.type === "folder" ? `${target.path}/` : "./";
+      return `${pathPrefix}${target.prefix || ""}${dateStr}.md`;
     } catch (e) {
-      return 'Invalid format';
+      return "Invalid Format";
     }
   }
 }
