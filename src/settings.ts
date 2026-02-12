@@ -1,6 +1,6 @@
-import { App, PluginSettingTab, Setting, Notice, setIcon } from "obsidian";
+import { App, PluginSettingTab, Setting, Notice, setIcon, Menu } from "obsidian";
 import QuickNotePlugin from "./main";
-import { TargetType } from "./types";
+import { NoteTarget } from "./types";
 import { TargetEditModal } from "./modal";
 
 export class QuickNoteSettingTab extends PluginSettingTab {
@@ -59,116 +59,170 @@ export class QuickNoteSettingTab extends PluginSettingTab {
       return;
     }
 
+    const cardsContainer = containerEl.createDiv({ cls: "quick-note-cards" });
+
     this.plugin.settings.targets.forEach((target, index) => {
-      const setting = new Setting(listContainer);
+      const card = cardsContainer.createDiv({ 
+        cls: `quick-note-card ${!target.enabled ? 'quick-note-card-disabled' : ''}`
+      });
 
-      // 1. Logic to determine Icon and Preview Text
-      let iconName = "folder";
-      let previewText = "";
+      // Card content (tappable)
+      const cardContent = card.createDiv({ cls: "quick-note-card-content" });
       
-      // Calculate preview string
-      try {
-        // @ts-ignore
-        const dateStr = window.moment().format(target.dateFormat || 'YYYY-MM-DD');
-        if (target.type === 'daily-note') {
-            iconName = "calendar-days";
-            previewText = "Daily Note (System Default)";
-        } else {
-            iconName = target.type === 'current-folder' ? "folder-open" : "folder";
-            const pathPrefix = target.type === 'folder' ? `${target.path}/` : './';
-            previewText = `${pathPrefix}${target.prefix || ''}${dateStr}.md`;
-        }
-      } catch (e) { previewText = "Invalid Format"; }
-
-      // 2. Set Name (Label) and Description (Preview)
-      setting.setName(target.label);
+      // Left: Icon and Label
+      const leftSection = cardContent.createDiv({ cls: "quick-note-card-left" });
       
-      // Inject icon before the name
-      const iconSpan = createSpan({ cls: "quick-note-setting-icon" });
+      const iconSpan = leftSection.createSpan({ cls: "quick-note-card-icon" });
+      const iconName = this.getIconForType(target.type);
       setIcon(iconSpan, iconName);
-      setting.nameEl.prepend(iconSpan);
-
-      // Set Description with custom class
-      const descEl = document.createDocumentFragment();
-      const code = descEl.createEl("code", { text: previewText, cls: "quick-note-preview-text" });
-      setting.setDesc(descEl);
-
-      // 3. Action Buttons (Reorder, Edit, Delete)
       
-      // Move Up
-      setting.addExtraButton(btn => {
-        btn.setIcon("arrow-up")
-           .setTooltip("Move Up")
-           .setDisabled(index === 0)
-           .onClick(async () => {
-             if (index === 0) return;
-             const temp = this.plugin.settings.targets[index];
-             this.plugin.settings.targets[index] = this.plugin.settings.targets[index - 1];
-             this.plugin.settings.targets[index - 1] = temp;
-             await this.plugin.saveSettings();
-             this.display();
-           });
-        // Hide visually if disabled to keep alignment clean
-        if (index === 0) btn.extraSettingsEl.style.opacity = "0.3";
-      });
+      const labelSpan = leftSection.createSpan({ cls: "quick-note-card-label" });
+      labelSpan.setText(target.label);
 
-      // Move Down
-      setting.addExtraButton(btn => {
-        btn.setIcon("arrow-down")
-           .setTooltip("Move Down")
-           .setDisabled(index === this.plugin.settings.targets.length - 1)
-           .onClick(async () => {
-             if (index === this.plugin.settings.targets.length - 1) return;
-             const temp = this.plugin.settings.targets[index];
-             this.plugin.settings.targets[index] = this.plugin.settings.targets[index + 1];
-             this.plugin.settings.targets[index + 1] = temp;
-             await this.plugin.saveSettings();
-             this.display();
-           });
-         if (index === this.plugin.settings.targets.length - 1) btn.extraSettingsEl.style.opacity = "0.3";
-      });
-
-      // Edit
-      setting.addExtraButton(btn => {
-        btn.setIcon("lucide-pencil") // or "pencil" depending on obsidian version
-           .setTooltip("Edit")
-           .onClick(() => {
-             new TargetEditModal(this.app, { ...target }, async (updated) => {
-               this.plugin.settings.targets[index] = updated;
-               await this.plugin.saveSettings();
-               this.display();
-             }).open();
-           });
-      });
-
-      // Delete
-      setting.addExtraButton(btn => {
-        btn.setIcon("trash")
-           .setTooltip("Delete")
-           .onClick(async () => {
-             this.plugin.settings.targets.splice(index, 1);
-             await this.plugin.saveSettings();
-             this.display();
-           });
-        btn.extraSettingsEl.style.color = "var(--text-error)";
-      });
-
-      // Toggle (Main Control)
-      setting.addToggle(toggle => {
-        toggle.setValue(target.enabled)
-              .setTooltip("Enable/Disable")
-              .onChange(async (val) => {
-                target.enabled = val;
-                await this.plugin.saveSettings();
-                // Optional: Dim the row if disabled
-                setting.settingEl.style.opacity = val ? "1" : "0.6";
-              });
-      });
+      // Right: Menu button
+      const rightSection = cardContent.createDiv({ cls: "quick-note-card-right" });
       
-      // Visual styling for disabled state
-      if (!target.enabled) {
-          setting.settingEl.style.opacity = "0.6";
-      }
+      const menuButton = rightSection.createEl("button", { 
+        cls: "quick-note-card-menu-btn"
+      });
+      menuButton.innerHTML = "⋯";
+      menuButton.setAttribute("aria-label", "Options");
+      
+      // Context menu
+      menuButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.showTargetMenu(target, index, menuButton);
+      });
+
+      // Make whole card tappable for edit
+      cardContent.addEventListener("click", () => {
+        new TargetEditModal(this.app, { ...target }, async (updated) => {
+          this.plugin.settings.targets[index] = updated;
+          await this.plugin.saveSettings();
+          this.display();
+          new Notice(`Updated "${updated.label}"`);
+        }).open();
+      });
+
+      // Subtitle with preview
+      const subtitle = card.createDiv({ cls: "quick-note-card-subtitle" });
+      const previewText = this.getPreviewText(target);
+      subtitle.setText(previewText);
     });
+  }
+
+  showTargetMenu(target: NoteTarget, index: number, buttonEl: HTMLElement) {
+    const menu = new Menu();
+
+    // Toggle enabled
+    menu.addItem((item) => {
+      item
+        .setTitle(target.enabled ? "Disable" : "Enable")
+        .setIcon(target.enabled ? "x" : "check")
+        .onClick(async () => {
+          target.enabled = !target.enabled;
+          await this.plugin.saveSettings();
+          this.display();
+          new Notice(`${target.enabled ? 'Enabled' : 'Disabled'} "${target.label}"`);
+        });
+    });
+
+    menu.addSeparator();
+
+    // Move up
+    if (index > 0) {
+      menu.addItem((item) => {
+        item
+          .setTitle("Move Up")
+          .setIcon("arrow-up")
+          .onClick(async () => {
+            const temp = this.plugin.settings.targets[index];
+            this.plugin.settings.targets[index] = this.plugin.settings.targets[index - 1];
+            this.plugin.settings.targets[index - 1] = temp;
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+    }
+
+    // Move down
+    if (index < this.plugin.settings.targets.length - 1) {
+      menu.addItem((item) => {
+        item
+          .setTitle("Move Down")
+          .setIcon("arrow-down")
+          .onClick(async () => {
+            const temp = this.plugin.settings.targets[index];
+            this.plugin.settings.targets[index] = this.plugin.settings.targets[index + 1];
+            this.plugin.settings.targets[index + 1] = temp;
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+    }
+
+    menu.addSeparator();
+
+    // Duplicate
+    menu.addItem((item) => {
+      item
+        .setTitle("Duplicate")
+        .setIcon("copy")
+        .onClick(async () => {
+          const duplicate = {
+            ...target,
+            id: Date.now().toString(),
+            label: `${target.label} (Copy)`
+          };
+          this.plugin.settings.targets.splice(index + 1, 0, duplicate);
+          await this.plugin.saveSettings();
+          this.display();
+          new Notice(`Duplicated "${target.label}"`);
+        });
+    });
+
+    // Delete
+    menu.addItem((item) => {
+      item
+        .setTitle("Delete")
+        .setIcon("trash")
+        .onClick(async () => {
+          this.plugin.settings.targets.splice(index, 1);
+          await this.plugin.saveSettings();
+          this.display();
+          new Notice(`Deleted "${target.label}"`);
+        });
+    });
+
+    menu.showAtMouseEvent(buttonEl.getBoundingClientRect() as any);
+  }
+
+  getIconForType(type: string): string {
+    switch (type) {
+      case 'folder': return 'folder';
+      case 'current-folder': return 'folder-open';
+      case 'daily-note': return 'calendar-days';
+      default: return 'file';
+    }
+  }
+
+  getPreviewText(target: NoteTarget): string {
+    try {
+      if (target.type === 'daily-note') {
+        return 'Opens today\'s daily note';
+      }
+      
+      // @ts-ignore
+      const dateStr = window.moment().format(target.dateFormat || 'YYYY-MM-DD');
+      const filename = `${target.prefix || ''}${dateStr}.md`;
+      
+      if (target.type === 'folder') {
+        return target.path ? `${target.path}/${filename}` : filename;
+      } else {
+        return `${filename} in current folder`;
+      }
+    } catch (e) {
+      return 'Invalid format';
+    }
   }
 }
