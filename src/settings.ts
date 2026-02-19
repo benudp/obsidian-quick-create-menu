@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice, setIcon } from "obsidian";
 import QuickNotePlugin from "./main";
-import { TargetEditModal } from "./modal";
+import { TargetEditModal } from "./modal/modal";
 import Sortable from "sortablejs";
 
 export class QuickNoteSettingTab extends PluginSettingTab {
@@ -20,7 +20,6 @@ export class QuickNoteSettingTab extends PluginSettingTab {
     // --- General Settings ---
     new Setting(containerEl)
       .setName("Show Icon in Header")
-      .setDesc("Toggle the + icon in tab headers.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.showInHeader)
@@ -36,7 +35,7 @@ export class QuickNoteSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Manage Targets")
-      .setDesc("Drag to reorder. These appear in your quick menu.")
+      .setDesc("Drag to reorder.")
       .addButton((btn) =>
         btn
           .setButtonText("Add New Target")
@@ -81,29 +80,27 @@ export class QuickNoteSettingTab extends PluginSettingTab {
     this.plugin.settings.targets.forEach((target, index) => {
       const setting = new Setting(listContainer);
       setting.settingEl.addClass("quick-note-item");
-      setting.settingEl.dataset.index = index.toString();
 
-      // 1. Create Drag Handle (PREPENDED independently)
-      // This places it outside the text flow, allowing vertical centering
+      // 1. Drag Handle
       const dragHandle = createDiv({ cls: "quick-note-drag-handle" });
       setIcon(dragHandle, "grip-vertical");
       setting.settingEl.prepend(dragHandle);
 
-      // 2. Name Section (Icon + Label)
+      // 2. Name & Icon
       const nameContainer = createDiv({ cls: "quick-note-name-container" });
+
       const iconSpan = nameContainer.createSpan({ cls: "quick-note-setting-icon" });
-      setIcon(iconSpan, this.getIconForType(target.type));
-      
+      setIcon(iconSpan, target.icon || 'file');
+      if (target.color) iconSpan.style.color = target.color;
+
       const labelSpan = nameContainer.createSpan({ cls: "quick-note-label-text" });
       labelSpan.setText(target.label);
-      labelSpan.title = target.label; // Tooltip for full text
-      
-      // FIX: Append directly to nameEl to avoid type error
+      if (target.color) labelSpan.style.color = target.color;
+
       setting.nameEl.appendChild(nameContainer);
 
-      // 3. Description Section (Preview)
-      const previewText = this.getPreviewText(target);
-      setting.setDesc(previewText);
+      // 3. Description
+      setting.setDesc(this.getPreviewText(target));
 
       // 4. Actions
       setting.addExtraButton((btn) =>
@@ -119,20 +116,26 @@ export class QuickNoteSettingTab extends PluginSettingTab {
           })
       );
 
-      // Delete Button
-      setting.addExtraButton((btn) => {
-        btn
-          .setIcon("trash")
-          .setTooltip("Delete")
-          .onClick(async () => {
-            this.plugin.settings.targets.splice(index, 1);
-            await this.plugin.saveSettings();
-            this.display();
-          });
-        btn.extraSettingsEl.addClass("quick-note-delete-btn");
-      });
+      // Delete Button - Only for NON-SYSTEM targets
+      if (!target.isSystem) {
+        setting.addExtraButton((btn) => {
+          btn
+            .setIcon("trash")
+            .setTooltip("Delete")
+            .onClick(async () => {
+              this.plugin.settings.targets.splice(index, 1);
+              await this.plugin.saveSettings();
+              this.display();
+            });
+          btn.extraSettingsEl.addClass("quick-note-delete-btn");
+        });
+      } else {
+        // Spacer for system targets to align buttons
+        const spacer = setting.controlEl.createDiv({ cls: "quick-note-btn-spacer" });
+        spacer.style.width = "28px";
+      }
 
-      // Toggle
+      // Enabled Toggle
       setting.addToggle((toggle) =>
         toggle
           .setValue(target.enabled)
@@ -144,30 +147,15 @@ export class QuickNoteSettingTab extends PluginSettingTab {
           })
       );
 
-      if (!target.enabled) {
-        setting.settingEl.addClass("is-disabled");
-      }
+      if (!target.enabled) setting.settingEl.addClass("is-disabled");
     });
   }
 
-  getIconForType(type: string): string {
-    switch (type) {
-      case "folder": return "folder";
-      case "current-folder": return "folder-open";
-      case "daily-note": return "calendar-days";
-      default: return "file";
-    }
-  }
-
   getPreviewText(target: any): string {
-    try {
-      if (target.type === "daily-note") return "Daily Note";
-      // @ts-ignore
-      const dateStr = window.moment().format(target.dateFormat || "YYYY-MM-DD");
-      const pathPrefix = target.type === "folder" ? `${target.path}/` : "./";
-      return `${pathPrefix}${target.prefix || ""}${dateStr}.md`;
-    } catch (e) {
-      return "Invalid Format";
-    }
+    if (target.type === 'daily-note') return "System Daily Note";
+    const pattern = target.filenamePattern || "{{date}}";
+    return target.type === 'folder'
+      ? `${target.path}/${pattern}.md`
+      : `./${pattern}.md`;
   }
 }

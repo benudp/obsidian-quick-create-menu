@@ -1,0 +1,36 @@
+/* Custom Popup Container */
+.quick-note-popup {
+  position: absolute;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-s);
+  padding: 6px 0;
+  z-index: var(--layer-menu);
+  min-width: 180px;
+  max-width: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Menu Items */
+.quick-note-popup-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  transition: background-color 0.1s ease;
+}
+
+.quick-note-popup-item:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.quick-note-popup-item .popup-icon {
+  margin-right: 8px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}

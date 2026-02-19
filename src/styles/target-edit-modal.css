@@ -1,0 +1,37 @@
+/* modal */
+/* 2 column layout */
+.oqcm-visual-wrap {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.oqcm-col {
+  flex: 1;
+}
+
+/* icon button full width */
+.oqcm-icon-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 10px 0;
+  border-radius: var(--button-radius);
+}
+
+/* center svg */
+.oqcm-icon-svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* footer buttons 50/50 */
+.oqcm-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.oqcm-footer button {
+  flex: 1;
+}

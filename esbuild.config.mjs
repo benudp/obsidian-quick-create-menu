@@ -17,8 +17,14 @@ const prod = process.argv[2] === "production";
 async function getObsidianDir() {
   try {
     const env = JSON.parse(await readFile("env.json", "utf8"));
+    if (!env.OBSIDIAN_PLUGIN_DIR)
+      throw new Error("OBSIDIAN_PLUGIN_DIR missing");
     return env.OBSIDIAN_PLUGIN_DIR;
-  } catch {
+  } catch (e) {
+    console.error(
+      "\x1b[31m%s\x1b[0m",
+      "env.json missing or invalid. Sync disabled.",
+    );
     return null;
   }
 }
@@ -70,7 +76,7 @@ const syncToObsidianPlugin = (obsidianDir) => ({
         }
       }
 
-      console.log(`✔ Synced to Obsidian: ${obsidianDir}`);
+      console.log("\x1b[32m%s\x1b[0m", `✔ Synced to Obsidian: ${obsidianDir}`);
     });
   },
 });
@@ -81,7 +87,7 @@ const obsidianDir = await getObsidianDir();
 
 const context = await esbuild.context({
   banner: { js: banner },
-  entryPoints: ["src/main.ts", "src/styles.css"],
+  entryPoints: ["src/main.ts"],
   bundle: true,
   external: ["obsidian", "electron", ...builtins],
   format: "cjs",
@@ -91,9 +97,6 @@ const context = await esbuild.context({
   treeShaking: true,
   outdir: "dist",
   minify: prod,
-
-  // No React plugin. No Tailwind/PostCSS plugin.
-  // If you import "./styles.css" in your TS, esbuild will still bundle it.
   loader: {
     ".css": "css",
   },
