@@ -1,8 +1,16 @@
-import { App, Modal, Setting, Notice, setIcon, ButtonComponent, DropdownComponent } from "obsidian";
-import { FolderSuggest } from "./FolderSuggestModal";
-import { FileSuggest } from "./FileSuggestModal";
+import {
+  App,
+  Modal,
+  Setting,
+  Notice,
+  setIcon,
+  ButtonComponent,
+  DropdownComponent,
+} from "obsidian";
+import { FolderSuggest } from "../suggests/FolderSuggest";
+import { FileSuggest } from "../suggests/FileSuggest";
 import { IconSuggestModal } from "./IconSuggestModal";
-import { NoteTarget } from "src/types";
+import { NoteTarget } from "../types";
 
 const AVAILABLE_COLORS = [
   { label: "Default", value: "" },
@@ -26,11 +34,13 @@ export class TargetEditModal extends Modal {
   iconButton: ButtonComponent | null = null;
   colorDropdown: DropdownComponent | null = null;
 
-  constructor(app: App, target: NoteTarget | null, onSubmit: (t: NoteTarget) => void) {
+  constructor(
+    app: App,
+    target: NoteTarget | null,
+    onSubmit: (t: NoteTarget) => void,
+  ) {
     super(app);
-
     this.isNew = target === null;
-
     this.target = target || {
       id: Date.now().toString(),
       label: "New Note",
@@ -62,33 +72,26 @@ export class TargetEditModal extends Modal {
     contentEl.addClass("quick-note-modal");
 
     /* LABEL */
-
-    new Setting(contentEl)
-      .setName("Label")
-      .addText(t =>
-        t.setValue(this.target.label)
-          .setPlaceholder("My Notes")
-          .onChange(v => (this.target.label = v))
-      );
+    new Setting(contentEl).setName("Label").addText((t) =>
+      t
+        .setValue(this.target.label)
+        .setPlaceholder("My Notes")
+        .onChange((v) => (this.target.label = v)),
+    );
 
     /* ICON + COLOR */
-
     const visualSetting = new Setting(contentEl)
       .setName("Icon & Color")
       .setClass("oqcm-visual-setting");
-
     visualSetting.controlEl.empty();
-
     const wrap = visualSetting.controlEl.createDiv("oqcm-visual-wrap");
 
     /* ICON BUTTON */
-
     const iconCol = wrap.createDiv("oqcm-col");
-
     this.iconButton = new ButtonComponent(iconCol)
       .setClass("oqcm-icon-btn")
       .onClick(() => {
-        new IconSuggestModal(this.app, icon => {
+        new IconSuggestModal(this.app, (icon) => {
           this.target.icon = icon;
           this.updateIconPreview();
         }).open();
@@ -98,91 +101,76 @@ export class TargetEditModal extends Modal {
     this.updateIconPreview();
 
     /* COLOR DROPDOWN */
-
     const colorCol = wrap.createDiv("oqcm-col");
-
     this.colorDropdown = new DropdownComponent(colorCol);
-
-    AVAILABLE_COLORS.forEach(c => {
-      this.colorDropdown!.addOption(c.value, c.label);
+    AVAILABLE_COLORS.forEach((c) =>
+      this.colorDropdown!.addOption(c.value, c.label),
+    );
+    this.colorDropdown.setValue(this.target.color).onChange((value) => {
+      this.target.color = value;
+      this.updateIconPreview();
     });
 
-    this.colorDropdown.setValue(this.target.color)
-      .onChange(value => {
-        this.target.color = value;
-        this.updateIconPreview();
-      });
-
     /* FILE SETTINGS */
-
     if (this.target.type !== "daily-note") {
-
       if (this.target.type === "folder") {
-        new Setting(contentEl)
-          .setName("Folder Path")
-          .addText(text => {
-            text.setValue(this.target.path)
-              .setPlaceholder("Inbox")
-              .onChange(v => (this.target.path = v));
-
-            new FolderSuggest(this.app, text.inputEl);
-          });
+        new Setting(contentEl).setName("Folder Path").addText((text) => {
+          text
+            .setValue(this.target.path)
+            .setPlaceholder("Inbox")
+            .onChange((v) => (this.target.path = v));
+          new FolderSuggest(this.app, text.inputEl);
+        });
       }
 
       new Setting(contentEl)
         .setName("Filename Pattern")
         .setDesc("Use {{date}} for timestamp")
-        .addText(text =>
-          text.setValue(this.target.filenamePattern)
+        .addText((text) =>
+          text
+            .setValue(this.target.filenamePattern)
             .setPlaceholder("Note - {{date}}")
-            .onChange(v => {
+            .onChange((v) => {
               this.target.filenamePattern = v;
               this.updatePreview();
-            })
+            }),
         );
 
       new Setting(contentEl)
         .setName("Date Format")
         .setDesc("MomentJS format")
-        .addText(text =>
-          text.setValue(this.target.dateFormat)
+        .addText((text) =>
+          text
+            .setValue(this.target.dateFormat)
             .setPlaceholder("YYYY-MM-DD")
-            .onChange(v => {
+            .onChange((v) => {
               this.target.dateFormat = v;
               this.updatePreview();
-            })
+            }),
         );
 
-      new Setting(contentEl)
-        .setName("Template")
-        .addText(text => {
-          text.setValue(this.target.templatePath)
-            .setPlaceholder("Templates/Note.md")
-            .onChange(v => (this.target.templatePath = v));
-
-          new FileSuggest(this.app, text.inputEl);
-        });
+      new Setting(contentEl).setName("Template").addText((text) => {
+        text
+          .setValue(this.target.templatePath)
+          .setPlaceholder("Templates/Note.md")
+          .onChange((v) => (this.target.templatePath = v));
+        new FileSuggest(this.app, text.inputEl);
+      });
 
       this.previewDiv = contentEl.createDiv("quick-note-preview-box");
       this.updatePreview();
-
     } else {
-
       contentEl.createDiv({
         cls: "quick-note-info-box",
-        text:
-          "This target triggers the built-in Daily Note command. Format handled by Daily Notes plugin.",
+        text: "This target triggers the built-in Daily Note command. Format handled by Daily Notes plugin.",
       });
     }
 
     /* FOOTER */
-
     const footer = contentEl.createDiv("oqcm-footer");
-
     new ButtonComponent(footer)
       .setButtonText("Cancel")
       .onClick(() => this.close());
-
     new ButtonComponent(footer)
       .setButtonText(this.isNew ? "Add" : "Save")
       .setCta()
@@ -202,24 +190,18 @@ export class TargetEditModal extends Modal {
 
   updateIconPreview() {
     if (!this.iconPreviewEl) return;
-
     this.iconPreviewEl.empty();
-
     const inner = this.iconPreviewEl.createDiv("oqcm-icon-svg");
     setIcon(inner, this.target.icon || "file");
-
     inner.style.color = this.target.color || "var(--text-normal)";
   }
 
   updatePreview() {
     if (!this.previewDiv) return;
-
     try {
-      // @ts-ignore
-      const dateString = window.moment().format(
-        this.target.dateFormat || "YYYY-MM-DD"
-      );
-
+      const dateString = (window as any)
+        .moment()
+        .format(this.target.dateFormat || "YYYY-MM-DD");
       const pattern = this.target.filenamePattern || "{{date}}";
       const filename = pattern.replace("{{date}}", dateString);
 
@@ -229,7 +211,6 @@ export class TargetEditModal extends Modal {
         cls: "quick-note-preview-code",
         text: `${filename}.md`,
       });
-
     } catch {
       this.previewDiv.setText("Invalid format");
     }

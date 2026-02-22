@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting, Notice, setIcon } from "obsidian";
-import QuickNotePlugin from "./main";
-import { TargetEditModal } from "./modal/modal";
+import QuickNotePlugin from "../main";
+import { TargetEditModal } from "../modals/TargetEditModal";
+import { NoteTarget } from "../types";
 import Sortable from "sortablejs";
 
 export class QuickNoteSettingTab extends PluginSettingTab {
@@ -27,7 +28,7 @@ export class QuickNoteSettingTab extends PluginSettingTab {
             this.plugin.settings.showInHeader = value;
             await this.plugin.saveSettings();
             this.plugin.refreshHeaderIcons();
-          })
+          }),
       );
 
     // --- Targets Header ---
@@ -47,13 +48,12 @@ export class QuickNoteSettingTab extends PluginSettingTab {
               this.display();
               new Notice(`Added "${target.label}"`);
             }).open();
-          })
+          }),
       );
 
     // --- Target List ---
     const listContainer = containerEl.createDiv({ cls: "quick-note-list" });
 
-    // SortableJS Init
     Sortable.create(listContainer, {
       handle: ".quick-note-drag-handle",
       animation: 150,
@@ -62,7 +62,11 @@ export class QuickNoteSettingTab extends PluginSettingTab {
       touchStartThreshold: 3,
       onEnd: async (evt) => {
         const { oldIndex, newIndex } = evt;
-        if (oldIndex !== undefined && newIndex !== undefined && oldIndex !== newIndex) {
+        if (
+          oldIndex !== undefined &&
+          newIndex !== undefined &&
+          oldIndex !== newIndex
+        ) {
           const targets = this.plugin.settings.targets;
           const [item] = targets.splice(oldIndex, 1);
           targets.splice(newIndex, 0, item);
@@ -73,7 +77,10 @@ export class QuickNoteSettingTab extends PluginSettingTab {
     });
 
     if (this.plugin.settings.targets.length === 0) {
-      listContainer.createDiv({ cls: "quick-note-empty-state", text: "No targets configured yet." });
+      listContainer.createDiv({
+        cls: "quick-note-empty-state",
+        text: "No targets configured yet.",
+      });
       return;
     }
 
@@ -88,15 +95,17 @@ export class QuickNoteSettingTab extends PluginSettingTab {
 
       // 2. Name & Icon
       const nameContainer = createDiv({ cls: "quick-note-name-container" });
-
-      const iconSpan = nameContainer.createSpan({ cls: "quick-note-setting-icon" });
-      setIcon(iconSpan, target.icon || 'file');
+      const iconSpan = nameContainer.createSpan({
+        cls: "quick-note-setting-icon",
+      });
+      setIcon(iconSpan, target.icon || "file");
       if (target.color) iconSpan.style.color = target.color;
 
-      const labelSpan = nameContainer.createSpan({ cls: "quick-note-label-text" });
+      const labelSpan = nameContainer.createSpan({
+        cls: "quick-note-label-text",
+      });
       labelSpan.setText(target.label);
       if (target.color) labelSpan.style.color = target.color;
-
       setting.nameEl.appendChild(nameContainer);
 
       // 3. Description
@@ -113,10 +122,9 @@ export class QuickNoteSettingTab extends PluginSettingTab {
               await this.plugin.saveSettings();
               this.display();
             }).open();
-          })
+          }),
       );
 
-      // Delete Button - Only for NON-SYSTEM targets
       if (!target.isSystem) {
         setting.addExtraButton((btn) => {
           btn
@@ -130,12 +138,12 @@ export class QuickNoteSettingTab extends PluginSettingTab {
           btn.extraSettingsEl.addClass("quick-note-delete-btn");
         });
       } else {
-        // Spacer for system targets to align buttons
-        const spacer = setting.controlEl.createDiv({ cls: "quick-note-btn-spacer" });
+        const spacer = setting.controlEl.createDiv({
+          cls: "quick-note-btn-spacer",
+        });
         spacer.style.width = "28px";
       }
 
-      // Enabled Toggle
       setting.addToggle((toggle) =>
         toggle
           .setValue(target.enabled)
@@ -144,17 +152,18 @@ export class QuickNoteSettingTab extends PluginSettingTab {
             target.enabled = val;
             await this.plugin.saveSettings();
             setting.settingEl.toggleClass("is-disabled", !val);
-          })
+          }),
       );
 
       if (!target.enabled) setting.settingEl.addClass("is-disabled");
     });
   }
 
-  getPreviewText(target: any): string {
-    if (target.type === 'daily-note') return "System Daily Note";
+  getPreviewText(target: NoteTarget): string {
+    // Strictly typed as NoteTarget instead of any
+    if (target.type === "daily-note") return "System Daily Note";
     const pattern = target.filenamePattern || "{{date}}";
-    return target.type === 'folder'
+    return target.type === "folder"
       ? `${target.path}/${pattern}.md`
       : `./${pattern}.md`;
   }
