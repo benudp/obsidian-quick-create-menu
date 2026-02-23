@@ -2,7 +2,8 @@ import { Plugin, WorkspaceLeaf, Notice, setIcon } from "obsidian";
 import { QuickNoteSettings, DEFAULT_SETTINGS } from "./types";
 import { QuickNoteSettingTab } from "./ui/SettingsTab";
 import { PopupMenu } from "./ui/PopupMenu";
-
+/** klovesbp*/
+/** klovesbp*/
 export default class QuickNotePlugin extends Plugin {
   settings: QuickNoteSettings;
   popupMenu: PopupMenu;

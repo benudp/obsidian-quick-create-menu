@@ -1,35 +1,23 @@
-import { spawn } from "child_process";
+import esbuild from "esbuild";
+import { getTSConfig, getStyleConfig } from "./esbuild.config.mjs";
 import { copyToObsidian } from "./copyToObsidian.mjs";
 
-function run(name, cmd, args = []) {
-  return new Promise((resolve) => {
-    console.log(`\n=== ${name} ===`);
+const root = process.cwd();
 
-    const p = spawn(cmd, args, {
-      stdio: "inherit",
-    });
+async function run() {
 
-    p.on("close", (code) => {
-      if (code === 0) {
-        console.log(`✅ ${name} passed`);
-        resolve(true);
-      } else {
-        console.log(`❌ ${name} failed`);
-        resolve(false);
-      }
-    });
-  });
+  console.log("\n🏗 Production build\n");
+
+  await esbuild.build(getTSConfig({ prod:true, root }));
+  console.log("✔ TS built");
+
+  await esbuild.build(getStyleConfig({ prod:true, root }));
+  console.log("✔ CSS built");
+
+  console.log("\n📦 Syncing to Obsidian...\n");
+  const ok = await copyToObsidian();
+
+  process.exit(ok ? 0 : 1);
 }
 
-const ok1 = await run("TypeScript typecheck", "npx", ["tsc", "--noEmit", "--skipLibCheck"]);
-const ok2 = ok1 && await run("TS bundle", "node", ["esbuild.config.mjs", "production"]);
-const ok3 = ok2 && await run("CSS bundle", "node", ["scripts/build-styles.mjs", "production"]);
-
-if (ok1 && ok2 && ok3) {
-  console.log("\nAll steps succeeded → syncing to Obsidian");
-  const synced = await copyToObsidian();
-  process.exit(synced ? 0 : 1);
-} else {
-  console.log("\n=== BUILD FAILED ===");
-  process.exit(1);
-}
+run();

@@ -1,56 +1,98 @@
-import { spawn } from "child_process";
+import esbuild from "esbuild";
+import { getTSConfig, getStyleConfig } from "./esbuild.config.mjs";
 import { copyToObsidian } from "./copyToObsidian.mjs";
-import path from "path";
 
-const projectRoot = path.resolve(import.meta.dirname, "..");
+const root = process.cwd();
 
-function watch(name, cmd, args, successMatcher) {
-  const p = spawn(cmd, args, {
-    cwd: projectRoot,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+let firstTS = false;
+let firstCSS = false;
+let initialSyncDone = false;
+let syncing = false;
+let buildNum = 0;
 
-  let pendingSync = false;
-
-  function handle(data) {
-    const text = data.toString();
-    process.stdout.write(text);
-
-    if (successMatcher(text)) {
-      if (!pendingSync) {
-        pendingSync = true;
-        setTimeout(async () => {
-          await copyToObsidian();
-          pendingSync = false;
-        }, 50);
-      }
-    }
-  }
-
-  p.stdout.on("data", handle);
-  p.stderr.on("data", (d) => process.stderr.write(d));
-
-  p.on("close", (code) => {
-    console.log(`\n${name} stopped (${code})`);
-  });
+function line() {
+  console.log("\n────────────────────────────────────");
 }
 
-watch(
-  "TS Watch",
-  "node",
-  ["esbuild.config.mjs"],
-  (t) =>
-    t.includes("built") ||
-    t.includes("rebuild") ||
-    t.includes("watching") ||
-    t.includes("done")
-);
+async function sync(reason) {
+  if (syncing) return;
+  syncing = true;
 
-watch(
-  "CSS Watch",
-  "node",
-  ["scripts/build-styles.mjs"],
-  (t) =>
-    t.includes("styles.css built") ||
-    t.includes("built")
-);
+  line();
+  console.log(`📦 ${reason} → syncing...\n`);
+
+  const ok = await copyToObsidian();
+  console.log(ok ? "✅ Sync finished\n" : "❌ Sync failed\n");
+
+  syncing = false;
+}
+
+async function onTS() {
+  buildNum++;
+  line();
+  console.log(`🟦 TS built (#${buildNum})`);
+
+  if (!initialSyncDone) {
+    firstTS = true;
+    if (firstTS && firstCSS) {
+      initialSyncDone = true;
+      await sync("Initial build ready");
+    }
+  } else {
+    await sync("TS updated");
+  }
+}
+
+async function onCSS() {
+  console.log("🟩 CSS built");
+
+  if (!initialSyncDone) {
+    firstCSS = true;
+    if (firstTS && firstCSS) {
+      initialSyncDone = true;
+      await sync("Initial build ready");
+    }
+  } else {
+    await sync("CSS updated");
+  }
+}
+
+console.log("\n🚀 Dev watcher started\n");
+
+const tsBase = getTSConfig({ prod:false, root });
+
+const tsCtx = await esbuild.context({
+  ...tsBase,
+  plugins: [
+    ...(tsBase.plugins ?? []),
+    {
+      name: "ts-watch",
+      setup(build){
+        build.onEnd(r=>{
+          if(!r.errors.length) onTS();
+        });
+      }
+    }
+  ]
+});
+
+await tsCtx.watch();
+
+const cssBase = getStyleConfig({ prod:false, root });
+
+const cssCtx = await esbuild.context({
+  ...cssBase,
+  plugins: [
+    ...(cssBase.plugins ?? []),
+    {
+      name:"css-watch",
+      setup(build){
+        build.onEnd(r=>{
+          if(!r.errors.length) onCSS();
+        });
+      }
+    }
+  ]
+});
+
+await cssCtx.watch();
