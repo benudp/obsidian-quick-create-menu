@@ -9,6 +9,7 @@ export class IconSuggestModal extends Modal {
   constructor(app: App, onChoose: (icon: string) => void) {
     super(app);
     this.onChoose = onChoose;
+    // Cache the icons so we don't fetch them repeatedly
     this.allIcons = getIconIds();
   }
 
@@ -30,6 +31,8 @@ export class IconSuggestModal extends Modal {
     });
 
     this.gridContainer = contentEl.createDiv("icon-picker-grid");
+    
+    // Initial render
     this.renderIcons(this.allIcons);
     this.searchInput.focus();
   }
@@ -44,6 +47,7 @@ export class IconSuggestModal extends Modal {
 
   renderIcons(icons: string[]) {
     this.gridContainer.empty();
+    
     if (icons.length === 0) {
       this.gridContainer.createDiv({
         cls: "icon-picker-empty",
@@ -52,9 +56,14 @@ export class IconSuggestModal extends Modal {
       return;
     }
 
-    icons.forEach((iconId) => {
+    // PERFORMANCE FIX: Limit the number of rendered DOM elements to prevent lag
+    const MAX_ICONS = 50;
+    const iconsToRender = icons.slice(0, MAX_ICONS);
+
+    iconsToRender.forEach((iconId) => {
       const iconButton = this.gridContainer.createDiv("icon-picker-item");
       const iconEl = iconButton.createDiv("icon-picker-item-icon");
+      
       setIcon(iconEl, iconId);
       setTooltip(iconButton, iconId);
 
@@ -72,6 +81,14 @@ export class IconSuggestModal extends Modal {
         }
       });
     });
+
+    // Let the user know there are more icons available if they search
+    if (icons.length > MAX_ICONS) {
+      this.gridContainer.createDiv({
+        cls: "icon-picker-limit-msg",
+        text: `Showing ${MAX_ICONS} of ${icons.length} icons. Type to search...`,
+      });
+    }
   }
 
   onClose() {
