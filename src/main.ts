@@ -2,8 +2,7 @@ import { Plugin, WorkspaceLeaf, Notice, setIcon } from "obsidian";
 import { QuickNoteSettings, DEFAULT_SETTINGS } from "./types";
 import { QuickNoteSettingTab } from "./ui/SettingsTab";
 import { PopupMenu } from "./ui/PopupMenu";
-/** klovesbp*/
-/** klovesbp*/
+
 export default class QuickNotePlugin extends Plugin {
   settings: QuickNoteSettings;
   popupMenu: PopupMenu;
@@ -19,10 +18,7 @@ export default class QuickNotePlugin extends Plugin {
       id: "open-quick-create-menu",
       name: "Open Quick Create Menu",
       callback: () => {
-        const leaf = this.app.workspace.getMostRecentLeaf();
-        if (leaf) {
-          new Notice("Use the + icon in the header to open the menu.");
-        }
+        new Notice("Use the + icon in the header to open the menu.");
       },
     });
 
@@ -35,6 +31,21 @@ export default class QuickNotePlugin extends Plugin {
         this.refreshHeaderIcons();
       }),
     );
+
+    // Global Document Click: Closes the popup if you click outside of it while it is pinned
+    this.registerDomEvent(document, "click", (e: MouseEvent) => {
+      document
+        .querySelectorAll(".quick-note-container")
+        .forEach((container) => {
+          if (!container.contains(e.target as Node)) {
+            if ((container as HTMLElement).dataset.pinned === "true") {
+              (container as HTMLElement).dataset.pinned = "false";
+              const popup = container.querySelector(".quick-note-popup");
+              if (popup) popup.removeClass("is-visible");
+            }
+          }
+        });
+    });
   }
 
   onunload() {
@@ -56,22 +67,27 @@ export default class QuickNotePlugin extends Plugin {
         if (this.iconElements.has(leaf)) return;
 
         // @ts-ignore
-        const container = leaf.view.containerEl.querySelector(".view-actions");
+        const viewActions =
+          leaf.view.containerEl.querySelector(".view-actions");
 
-        if (container) {
-          const btn = container.createDiv({
+        if (viewActions) {
+          // 1. Create Wrapper
+          const wrapper = viewActions.createDiv({
+            cls: "quick-note-container",
+          });
+
+          // 2. Create Button
+          const btn = wrapper.createDiv({
             cls: "clickable-icon view-action quick-note-action",
           });
           btn.setAttribute("aria-label", "Quick Create Note");
-
           setIcon(btn, "plus-circle");
 
-          btn.addEventListener("click", (e) => {
-            this.popupMenu.show(e, btn, this.settings.targets);
-          });
+          // 3. Let PopupMenu attach the menu contents and event listeners
+          this.popupMenu.attach(wrapper, btn, this.settings.targets);
 
-          this.iconElements.set(leaf, btn);
-          container.prepend(btn);
+          this.iconElements.set(leaf, wrapper);
+          viewActions.prepend(wrapper);
         }
       }
     });

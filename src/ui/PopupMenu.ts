@@ -11,15 +11,17 @@ export class PopupMenu {
     this.fileCreator = new FileCreator(app);
   }
 
-  show(event: MouseEvent, anchorBtn: HTMLElement, targets: NoteTarget[]) {
-    // 1. Create Container
-    const popup = document.body.createDiv({ cls: "quick-note-popup" });
+  attach(wrapper: HTMLElement, btn: HTMLElement, targets: NoteTarget[]) {
+    // 1. Create the Popup container inside the wrapper
+    const popup = wrapper.createDiv({ cls: "quick-note-popup" });
+
+    // Store pinned state in the DOM so the global document click can access it
+    wrapper.dataset.pinned = "false";
+    let hideTimeout: number | null = null;
 
     // 2. Populate Items
     targets.forEach((target) => {
       if (!target.enabled) return;
-
-      // Removed the old daily-notes internalPlugin check here!
 
       const item = popup.createDiv({ cls: "quick-note-popup-item" });
 
@@ -32,38 +34,50 @@ export class PopupMenu {
       const labelSpan = item.createSpan({ text: target.label });
       if (target.color) labelSpan.style.color = target.color;
 
-      // Click Handler
+      // Click Handler for executing the action
       item.addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent triggering the window close listener immediately
+        e.stopPropagation();
         this.fileCreator.executeCreate(target);
-        this.closePopup(popup);
+
+        // Unpin and hide the menu after executing
+        wrapper.dataset.pinned = "false";
+        popup.removeClass("is-visible");
       });
     });
 
-    // 3. Position Logic
-    const rect = anchorBtn.getBoundingClientRect();
-    popup.style.top = `${rect.bottom + 5}px`;
-    popup.style.right = `${window.innerWidth - rect.right}px`;
-
-    // 4. Close on Click Outside
-    const closeListener = (e: MouseEvent) => {
-      if (!popup.contains(e.target as Node) && e.target !== anchorBtn) {
-        this.closePopup(popup);
-        document.removeEventListener("click", closeListener);
+    // 3. Hover logic
+    wrapper.addEventListener("mouseenter", () => {
+      if (hideTimeout !== null) {
+        window.clearTimeout(hideTimeout);
+        hideTimeout = null;
       }
-    };
+      popup.addClass("is-visible");
+    });
 
-    // Delay adding listener to avoid immediate close from the triggering click
-    setTimeout(() => {
-      document.addEventListener("click", closeListener);
-    }, 100);
+    wrapper.addEventListener("mouseleave", () => {
+      // Only start the hide timeout if it's not pinned
+      if (wrapper.dataset.pinned !== "true") {
+        hideTimeout = window.setTimeout(() => {
+          popup.removeClass("is-visible");
+        }, 300); // 300ms delay like Minidoro
+      }
+    });
+
+    // 4. Click to Pin logic
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isPinned = wrapper.dataset.pinned === "true";
+
+      if (isPinned) {
+        wrapper.dataset.pinned = "false";
+        popup.removeClass("is-visible");
+      } else {
+        wrapper.dataset.pinned = "true";
+        popup.addClass("is-visible");
+      }
+    });
   }
 
-  closePopup(popup: HTMLElement) {
-    if (popup && popup.parentElement) {
-      popup.remove();
-    }
-  }
   private getIconForType(type: TargetType): string {
     switch (type) {
       case "folder":
@@ -71,7 +85,7 @@ export class PopupMenu {
       case "current-folder":
         return "folder-open";
       case "obsidian-command":
-        return "zap"; // Replaced daily-note with a bolt/zap icon
+        return "zap";
       default:
         return "file";
     }

@@ -1,27 +1,46 @@
-/* Custom Popup Container */
-.quick-note-popup {
-  position: absolute;
-  background-color: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-l);
-  box-shadow: var(--shadow-s);
-  padding: 6px 0;
-  z-index: var(--layer-menu);
-  min-width: 180px;
-  max-width: 250px;
+.quick-note-container {
+  position: relative;
   display: flex;
-  flex-direction: column;
+  align-items: center;
 }
 
-/* Menu Items */
+.quick-note-popup {
+  position: absolute;
+  top: 100%;
+  right: 0; /* Drops down from the right edge of the button */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+
+  /* Styling similar to Minidoro */
+  padding: 8px;
+  margin-top: 8px;
+  background-color: var(--background-secondary);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: var(--shadow-s);
+  min-width: 180px;
+
+  /* Hidden by default, shown via flex when .is-visible is added */
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quick-note-popup.is-visible {
+  display: flex;
+}
+
 .quick-note-popup-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius-s);
   cursor: pointer;
-  font-size: var(--font-ui-small);
   color: var(--text-normal);
-  transition: background-color 0.1s ease;
+  font-size: var(--font-ui-small);
+  transition: background-color 0.15s ease;
 }
 
 .quick-note-popup-item:hover {
@@ -29,8 +48,12 @@
 }
 
 .quick-note-popup-item .popup-icon {
-  margin-right: 8px;
-  color: var(--text-muted);
   display: flex;
   align-items: center;
+  justify-content: center;
+}
+
+.quick-note-popup-item .popup-icon svg {
+  width: 16px;
+  height: 16px;
 }
