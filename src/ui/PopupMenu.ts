@@ -18,11 +18,8 @@ export class PopupMenu {
     // 2. Populate Items
     targets.forEach((target) => {
       if (!target.enabled) return;
-      if (target.type === "daily-note") {
-        // @ts-ignore
-        const dailyPlugin = this.app.internalPlugins.plugins["daily-notes"];
-        if (dailyPlugin && !dailyPlugin.enabled) return;
-      }
+
+      // Removed the old daily-notes internalPlugin check here!
 
       const item = popup.createDiv({ cls: "quick-note-popup-item" });
 
@@ -67,15 +64,14 @@ export class PopupMenu {
       popup.remove();
     }
   }
-
   private getIconForType(type: TargetType): string {
     switch (type) {
       case "folder":
         return "folder";
       case "current-folder":
         return "folder-open";
-      case "daily-note":
-        return "calendar-with-checkmark";
+      case "obsidian-command":
+        return "zap"; // Replaced daily-note with a bolt/zap icon
       default:
         return "file";
     }

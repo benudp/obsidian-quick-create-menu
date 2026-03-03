@@ -160,8 +160,8 @@ export class QuickNoteSettingTab extends PluginSettingTab {
   }
 
   getPreviewText(target: NoteTarget): string {
-    // Strictly typed as NoteTarget instead of any
-    if (target.type === "daily-note") return "System Daily Note";
+    if (target.type === "obsidian-command")
+      return `Command: ${target.commandId || "None"}`;
     const pattern = target.filenamePattern || "{{date}}";
     return target.type === "folder"
       ? `${target.path}/${pattern}.md`

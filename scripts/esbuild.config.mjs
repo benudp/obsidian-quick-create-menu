@@ -19,7 +19,6 @@ export function getTSConfig({ prod, root }) {
 }
 
 export function getStyleConfig({ prod, root }) {
-
   const HEADER = `/*
 GENERATED FILE - DO NOT EDIT styles.css
 */`;
@@ -41,8 +40,7 @@ GENERATED FILE - DO NOT EDIT styles.css
           }
 
           console.log("✔ styles.css built");
-
-        } catch { }
+        } catch {}
       });
     },
   };

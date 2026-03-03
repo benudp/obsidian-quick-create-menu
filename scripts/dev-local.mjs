@@ -59,7 +59,7 @@ async function onCSS() {
 
 console.log("\n🚀 Dev watcher started\n");
 
-const tsBase = getTSConfig({ prod:false, root });
+const tsBase = getTSConfig({ prod: false, root });
 
 const tsCtx = await esbuild.context({
   ...tsBase,
@@ -67,32 +67,32 @@ const tsCtx = await esbuild.context({
     ...(tsBase.plugins ?? []),
     {
       name: "ts-watch",
-      setup(build){
-        build.onEnd(r=>{
-          if(!r.errors.length) onTS();
+      setup(build) {
+        build.onEnd((r) => {
+          if (!r.errors.length) onTS();
         });
-      }
-    }
-  ]
+      },
+    },
+  ],
 });
 
 await tsCtx.watch();
 
-const cssBase = getStyleConfig({ prod:false, root });
+const cssBase = getStyleConfig({ prod: false, root });
 
 const cssCtx = await esbuild.context({
   ...cssBase,
   plugins: [
     ...(cssBase.plugins ?? []),
     {
-      name:"css-watch",
-      setup(build){
-        build.onEnd(r=>{
-          if(!r.errors.length) onCSS();
+      name: "css-watch",
+      setup(build) {
+        build.onEnd((r) => {
+          if (!r.errors.length) onCSS();
         });
-      }
-    }
-  ]
+      },
+    },
+  ],
 });
 
 await cssCtx.watch();

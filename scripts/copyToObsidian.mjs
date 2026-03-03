@@ -5,10 +5,14 @@ import { cp, mkdir, readFile } from "fs/promises";
 export async function getObsidianDir() {
   try {
     const env = JSON.parse(await readFile("env.json", "utf8"));
-    if (!env.OBSIDIAN_PLUGIN_DIR) throw new Error("Missing OBSIDIAN_PLUGIN_DIR");
+    if (!env.OBSIDIAN_PLUGIN_DIR)
+      throw new Error("Missing OBSIDIAN_PLUGIN_DIR");
     return env.OBSIDIAN_PLUGIN_DIR;
   } catch (e) {
-    console.error("\x1b[31m%s\x1b[0m", "env.json missing or invalid. Sync disabled.");
+    console.error(
+      "\x1b[31m%s\x1b[0m",
+      "env.json missing or invalid. Sync disabled.",
+    );
     return null;
   }
 }

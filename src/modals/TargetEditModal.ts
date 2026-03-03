@@ -10,7 +10,8 @@ import {
 import { FolderSuggest } from "../suggests/FolderSuggest";
 import { FileSuggest } from "../suggests/FileSuggest";
 import { IconSuggestModal } from "./IconSuggestModal";
-import { NoteTarget } from "../types";
+import { CommandSuggestModal } from "./CommandSuggestModal";
+import { NoteTarget, TargetType } from "../types";
 
 const AVAILABLE_COLORS = [
   { label: "Default", value: "" },
@@ -43,7 +44,7 @@ export class TargetEditModal extends Modal {
     this.isNew = target === null;
     this.target = target || {
       id: Date.now().toString(),
-      label: "New Note",
+      label: "New Action",
       type: "folder",
       icon: "file",
       color: "",
@@ -52,11 +53,13 @@ export class TargetEditModal extends Modal {
       filenamePattern: "Note - {{date}}",
       dateFormat: "YYYY-MM-DD",
       templatePath: "",
-      openAfterCreate: true,
       enabled: true,
     };
 
-    if (!this.target.filenamePattern && this.target.type !== "daily-note") {
+    if (
+      !this.target.filenamePattern &&
+      this.target.type !== "obsidian-command"
+    ) {
       // @ts-ignore migration
       const oldPrefix = this.target.prefix || "Note ";
       this.target.filenamePattern = `${oldPrefix}{{date}}`;
@@ -75,9 +78,21 @@ export class TargetEditModal extends Modal {
     new Setting(contentEl).setName("Label").addText((t) =>
       t
         .setValue(this.target.label)
-        .setPlaceholder("My Notes")
+        .setPlaceholder("My Action")
         .onChange((v) => (this.target.label = v)),
     );
+
+    /* TYPE DROPDOWN */
+    new Setting(contentEl).setName("Action Type").addDropdown((cb) => {
+      cb.addOption("folder", "Create in specific folder")
+        .addOption("current-folder", "Create in current folder")
+        .addOption("obsidian-command", "Run Obsidian Command")
+        .setValue(this.target.type)
+        .onChange((v) => {
+          this.target.type = v as TargetType;
+          this.onOpen(); // Re-render settings based on type
+        });
+    });
 
     /* ICON + COLOR */
     const visualSetting = new Setting(contentEl)
@@ -111,8 +126,8 @@ export class TargetEditModal extends Modal {
       this.updateIconPreview();
     });
 
-    /* FILE SETTINGS */
-    if (this.target.type !== "daily-note") {
+    /* CONTEXTUAL SETTINGS */
+    if (this.target.type !== "obsidian-command") {
       if (this.target.type === "folder") {
         new Setting(contentEl).setName("Folder Path").addText((text) => {
           text
@@ -160,10 +175,22 @@ export class TargetEditModal extends Modal {
       this.previewDiv = contentEl.createDiv("quick-note-preview-box");
       this.updatePreview();
     } else {
-      contentEl.createDiv({
-        cls: "quick-note-info-box",
-        text: "This target triggers the built-in Daily Note command. Format handled by Daily Notes plugin.",
-      });
+      // NEW COMMAND SELECTION UI
+      new Setting(contentEl)
+        .setName("Obsidian Command")
+        .setDesc(
+          this.target.commandId
+            ? `Selected ID: ${this.target.commandId}`
+            : "No command selected",
+        )
+        .addButton((btn) =>
+          btn.setButtonText("Select Command").onClick(() => {
+            new CommandSuggestModal(this.app, (command) => {
+              this.target.commandId = command.id;
+              this.onOpen(); // Re-render the modal to show the updated selection
+            }).open();
+          }),
+        );
     }
 
     /* FOOTER */
@@ -181,6 +208,13 @@ export class TargetEditModal extends Modal {
         }
         if (this.target.type === "folder" && !this.target.path.trim()) {
           new Notice("Folder path required");
+          return;
+        }
+        if (
+          this.target.type === "obsidian-command" &&
+          !this.target.commandId?.trim()
+        ) {
+          new Notice("Command ID required");
           return;
         }
         this.onSubmit(this.target);

@@ -1,25 +1,27 @@
-export type TargetType = "folder" | "current-folder" | "daily-note";
+export type TargetType = "folder" | "current-folder" | "obsidian-command";
 
 export interface NoteTarget {
   id: string;
   label: string;
   type: TargetType;
 
-  // Visualsg
-  icon: string; // e.g. "file-plus"
-  color: string; // e.g. "var(--color-red)" or "" for default
+  // Visuals
+  icon: string;
+  color: string;
 
   // System flags
-  isSystem?: boolean; // If true, cannot be deleted
+  isSystem?: boolean;
 
   // Paths & Patterns
-  path: string; // Folder path (ignored for current-folder/daily-note)
-  filenamePattern: string; // e.g. "Note - {{date}}"
-  dateFormat: string; // e.g. "YYYY-MM-DD"
+  path: string;
+  filenamePattern: string;
+  dateFormat: string;
 
   templatePath: string;
-  openAfterCreate: boolean;
   enabled: boolean;
+
+  // Commands
+  commandId?: string;
 }
 
 export interface QuickNoteSettings {
@@ -33,7 +35,7 @@ export const DEFAULT_SETTINGS: QuickNoteSettings = {
     {
       id: "system-daily",
       label: "Today's Daily Note",
-      type: "daily-note",
+      type: "obsidian-command",
       icon: "calendar-days",
       color: "",
       isSystem: true,
@@ -41,8 +43,8 @@ export const DEFAULT_SETTINGS: QuickNoteSettings = {
       filenamePattern: "",
       dateFormat: "",
       templatePath: "",
-      openAfterCreate: true,
       enabled: true,
+      commandId: "daily-notes:goto-today",
     },
     {
       id: "system-current",
@@ -55,7 +57,6 @@ export const DEFAULT_SETTINGS: QuickNoteSettings = {
       filenamePattern: "Note - {{date}}",
       dateFormat: "YYYY-MM-DD",
       templatePath: "",
-      openAfterCreate: true,
       enabled: true,
     },
     {
@@ -69,7 +70,6 @@ export const DEFAULT_SETTINGS: QuickNoteSettings = {
       filenamePattern: "Inbox - {{date}}",
       dateFormat: "YYYY-MM-DD HHmm",
       templatePath: "",
-      openAfterCreate: true,
       enabled: true,
     },
   ],
