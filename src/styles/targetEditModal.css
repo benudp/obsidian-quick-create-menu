@@ -1,37 +1,169 @@
-/* modal */
-/* 2 column layout */
-.oqcm-visual-wrap {
+
+/* Ensure the modal spans height correctly for the sticky footer */
+.oqcm-modal-v2 {
   display: flex;
-  gap: 8px;
-  width: 100%;
+  flex-direction: column;
+  height: 90%;
+  padding: 12px;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;  /* NEW: Strip native left padding */
+  padding-right: 0 !important; /* NEW: Strip native right padding */
+  gap: 16px; /* Spacing between cards */
 }
 
-.oqcm-col {
-  flex: 1;
+/* --- Card Containers --- */
+.oqcm-card {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-l);
+  padding: 4px 20px 20px 20px;
 }
 
-/* icon button full width */
-.oqcm-icon-btn {
-  width: 100%;
+.oqcm-card, .oqcm-preview-area {
+  /* Uses Obsidian's native variable with a 24px fallback */
+  margin-left: var(--size-4-5, 24px); 
+  margin-right: var(--size-4-5, 24px);
+}
+.oqcm-card .setting-item {
+  border-bottom: none;
+  padding: 16px 0 0 0;
+}
+
+.oqcm-card .setting-item:not(:last-child) {
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 16px;
+}
+
+.oqcm-card-title {
+  margin: 16px 0 0 0;
+  padding-bottom: 8px;
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+}
+
+/* --- Live Preview Area --- */
+.oqcm-preview-area {
+  background-color: var(--background-primary-alt);
+  border: 1px dashed var(--interactive-accent);
+  border-radius: var(--radius-l);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  padding: 10px 0;
-  border-radius: var(--button-radius);
 }
 
-/* center svg */
-.oqcm-icon-svg {
+.oqcm-preview-title {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.oqcm-preview-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--background-modifier-hover);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-monospace);
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.oqcm-preview-chip-icon {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* footer buttons 50/50 */
-.oqcm-footer {
+.oqcm-preview-chip-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.oqcm-preview-subtext {
+  margin-top: 12px;
+  font-size: var(--font-ui-small);
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+}
+
+/* --- Visuals Row (Icon & Color) --- */
+.oqcm-visual-wrap {
   display: flex;
-  gap: 8px;
-  margin-top: 18px;
+  align-items: center;
+  gap: 12px;
+}
+
+.oqcm-col {
+  display: flex;
+}
+
+/* Make the icon button a clean, perfectly proportioned square */
+.oqcm-icon-btn {
+  height: 44px; /* Matches Obsidian's default dropdown/input height */
+  width: 44px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  
+  /* Use native Obsidian interactive variables */
+  background-color: var(--interactive-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--input-radius, 4px);
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+/* Add a nice hover effect to show it's clickable */
+.oqcm-icon-btn:hover {
+  background-color: var(--interactive-hover);
+  border-color: var(--interactive-accent);
+}
+
+.oqcm-icon-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oqcm-icon-inner svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* --- Sticky Footer --- */
+.oqcm-footer {
+  position: sticky;
+  bottom: 0;
+  
+  margin: auto 0 0 0; 
+  
+  /* Apply the native padding back inside the footer */
+  padding: 16px;
+  
+  background-color: var(--background-secondary);
+  border-top: 0px solid var(--background-modifier-border);
+  display: flex;
+  gap: 12px;
+  z-index: 10;
+  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.05);
 }
 
 .oqcm-footer button {
   flex: 1;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

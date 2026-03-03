@@ -66,42 +66,63 @@ export class TargetEditModal extends Modal {
     }
 
     this.onSubmit = onSubmit;
-    this.setTitle(this.isNew ? "Add New Target" : `Edit: ${this.target.label}`);
+    this.setTitle(
+      this.isNew ? "Create Quick Action" : `Edit Action: ${this.target.label}`,
+    );
   }
 
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("quick-note-modal");
+    contentEl.addClass("oqcm-modal-v2");
 
-    /* LABEL */
-    new Setting(contentEl).setName("Label").addText((t) =>
+    /* =========================================
+       CARD 1: GENERAL & IDENTITY
+       ========================================= */
+    const identityCard = contentEl.createDiv("oqcm-card");
+    identityCard.createEl("h3", {
+      text: "General",
+      cls: "oqcm-card-title",
+    });
+
+    new Setting(identityCard).setName("Action Label").addText((t) =>
       t
         .setValue(this.target.label)
-        .setPlaceholder("My Action")
-        .onChange((v) => (this.target.label = v)),
+        .setPlaceholder("e.g., Daily Journal")
+        .onChange((v) => {
+          this.target.label = v;
+          this.updatePreview();
+        }),
     );
 
-    /* TYPE DROPDOWN */
-    new Setting(contentEl).setName("Action Type").addDropdown((cb) => {
+    new Setting(identityCard).setName("Action Type").addDropdown((cb) => {
       cb.addOption("folder", "Create in specific folder")
         .addOption("current-folder", "Create in current folder")
         .addOption("obsidian-command", "Run Obsidian Command")
         .setValue(this.target.type)
         .onChange((v) => {
           this.target.type = v as TargetType;
-          this.onOpen(); // Re-render settings based on type
+          this.onOpen();
         });
     });
 
-    /* ICON + COLOR */
-    const visualSetting = new Setting(contentEl)
-      .setName("Icon & Color")
+    /* =========================================
+       CARD 2: APPEARANCE
+       ========================================= */
+    const appearanceCard = contentEl.createDiv("oqcm-card");
+    appearanceCard.createEl("h3", {
+      text: "Appearance",
+      cls: "oqcm-card-title",
+    });
+
+    const visualSetting = new Setting(appearanceCard)
+      .setName("Menu Icon & Color")
+      .setDesc("How this action appears in the popup menu.")
       .setClass("oqcm-visual-setting");
+
     visualSetting.controlEl.empty();
     const wrap = visualSetting.controlEl.createDiv("oqcm-visual-wrap");
 
-    /* ICON BUTTON */
     const iconCol = wrap.createDiv("oqcm-col");
     this.iconButton = new ButtonComponent(iconCol)
       .setClass("oqcm-icon-btn")
@@ -115,7 +136,6 @@ export class TargetEditModal extends Modal {
     this.iconPreviewEl = this.iconButton.buttonEl.createDiv("oqcm-icon-inner");
     this.updateIconPreview();
 
-    /* COLOR DROPDOWN */
     const colorCol = wrap.createDiv("oqcm-col");
     this.colorDropdown = new DropdownComponent(colorCol);
     AVAILABLE_COLORS.forEach((c) =>
@@ -126,21 +146,38 @@ export class TargetEditModal extends Modal {
       this.updateIconPreview();
     });
 
-    /* CONTEXTUAL SETTINGS */
+    /* =========================================
+       CARD 3: ACTION CONFIGURATION
+       ========================================= */
+    const configCard = contentEl.createDiv("oqcm-card");
+    configCard.createEl("h3", {
+      text:
+        this.target.type === "obsidian-command"
+          ? "Command Details"
+          : "File Details",
+      cls: "oqcm-card-title",
+    });
+
     if (this.target.type !== "obsidian-command") {
       if (this.target.type === "folder") {
-        new Setting(contentEl).setName("Folder Path").addText((text) => {
-          text
-            .setValue(this.target.path)
-            .setPlaceholder("Inbox")
-            .onChange((v) => (this.target.path = v));
-          new FolderSuggest(this.app, text.inputEl);
-        });
+        new Setting(configCard)
+          .setName("Target Folder")
+          .setDesc("Where should this note be saved?")
+          .addText((text) => {
+            text
+              .setValue(this.target.path)
+              .setPlaceholder("e.g., Inbox/Notes")
+              .onChange((v) => {
+                this.target.path = v;
+                this.updatePreview();
+              });
+            new FolderSuggest(this.app, text.inputEl);
+          });
       }
 
-      new Setting(contentEl)
+      new Setting(configCard)
         .setName("Filename Pattern")
-        .setDesc("Use {{date}} for timestamp")
+        .setDesc("Use {{date}} to inject the current time.")
         .addText((text) =>
           text
             .setValue(this.target.filenamePattern)
@@ -151,9 +188,9 @@ export class TargetEditModal extends Modal {
             }),
         );
 
-      new Setting(contentEl)
+      new Setting(configCard)
         .setName("Date Format")
-        .setDesc("MomentJS format")
+        .setDesc("MomentJS formatting (e.g., YYYY-MM-DD).")
         .addText((text) =>
           text
             .setValue(this.target.dateFormat)
@@ -164,57 +201,65 @@ export class TargetEditModal extends Modal {
             }),
         );
 
-      new Setting(contentEl).setName("Template").addText((text) => {
-        text
-          .setValue(this.target.templatePath)
-          .setPlaceholder("Templates/Note.md")
-          .onChange((v) => (this.target.templatePath = v));
-        new FileSuggest(this.app, text.inputEl);
-      });
-
-      this.previewDiv = contentEl.createDiv("quick-note-preview-box");
-      this.updatePreview();
+      new Setting(configCard)
+        .setName("Template File")
+        .setDesc("Optional template to apply to the new note.")
+        .addText((text) => {
+          text
+            .setValue(this.target.templatePath)
+            .setPlaceholder("e.g., Templates/Daily.md")
+            .onChange((v) => (this.target.templatePath = v));
+          new FileSuggest(this.app, text.inputEl);
+        });
     } else {
-      // NEW COMMAND SELECTION UI
-      new Setting(contentEl)
+      new Setting(configCard)
         .setName("Obsidian Command")
         .setDesc(
           this.target.commandId
-            ? `Selected ID: ${this.target.commandId}`
-            : "No command selected",
+            ? `Selected: ${this.target.commandId}`
+            : "No command selected yet.",
         )
         .addButton((btn) =>
-          btn.setButtonText("Select Command").onClick(() => {
+          btn.setButtonText("Browse Commands").onClick(() => {
             new CommandSuggestModal(this.app, (command) => {
               this.target.commandId = command.id;
-              this.onOpen(); // Re-render the modal to show the updated selection
+              this.onOpen();
             }).open();
           }),
         );
     }
 
-    /* FOOTER */
+    /* =========================================
+       LIVE PREVIEW AREA
+       ========================================= */
+    this.previewDiv = contentEl.createDiv("oqcm-preview-area");
+    this.updatePreview();
+
+    /* =========================================
+       FOOTER
+       ========================================= */
     const footer = contentEl.createDiv("oqcm-footer");
     new ButtonComponent(footer)
       .setButtonText("Cancel")
       .onClick(() => this.close());
+
     new ButtonComponent(footer)
-      .setButtonText(this.isNew ? "Add" : "Save")
+      .setButtonText(this.isNew ? "Create Action" : "Save Changes")
       .setCta()
       .onClick(() => {
         if (!this.target.label.trim()) {
-          new Notice("Label cannot be empty");
+          new Notice("Please provide an Action Label.");
           return;
         }
         if (this.target.type === "folder" && !this.target.path.trim()) {
-          new Notice("Folder path required");
+          new Notice("Please provide a target folder path.");
           return;
         }
         if (
           this.target.type === "obsidian-command" &&
           !this.target.commandId?.trim()
         ) {
-          new Notice("Command ID required");
+          new Notice("Please select an Obsidian Command.");
           return;
         }
         this.onSubmit(this.target);
@@ -228,25 +273,51 @@ export class TargetEditModal extends Modal {
     const inner = this.iconPreviewEl.createDiv("oqcm-icon-svg");
     setIcon(inner, this.target.icon || "file");
     inner.style.color = this.target.color || "var(--text-normal)";
+    this.updatePreview(); // Update preview to reflect new icon/color
   }
 
   updatePreview() {
     if (!this.previewDiv) return;
-    try {
-      const dateString = (window as any)
-        .moment()
-        .format(this.target.dateFormat || "YYYY-MM-DD");
-      const pattern = this.target.filenamePattern || "{{date}}";
-      const filename = pattern.replace("{{date}}", dateString);
+    this.previewDiv.empty();
 
-      this.previewDiv.empty();
-      this.previewDiv.createEl("small", { text: "Preview filename:" });
-      this.previewDiv.createEl("div", {
-        cls: "quick-note-preview-code",
-        text: `${filename}.md`,
+    const titleEl = this.previewDiv.createEl("div", {
+      cls: "oqcm-preview-title",
+      text: "Live Preview",
+    });
+
+    const chipContainer = this.previewDiv.createDiv("oqcm-preview-chip");
+
+    // Add icon to chip
+    const iconSpan = chipContainer.createSpan("oqcm-preview-chip-icon");
+    setIcon(iconSpan, this.target.icon || "file");
+    iconSpan.style.color = this.target.color || "var(--text-muted)";
+
+    if (this.target.type === "obsidian-command") {
+      chipContainer.createSpan({
+        text: `Execute: ${this.target.label || "Unnamed Action"}`,
       });
-    } catch {
-      this.previewDiv.setText("Invalid format");
+      this.previewDiv.createEl("div", {
+        cls: "oqcm-preview-subtext",
+        text: `Command ID: ${this.target.commandId || "None selected"}`,
+      });
+    } else {
+      try {
+        const dateString = (window as any)
+          .moment()
+          .format(this.target.dateFormat || "YYYY-MM-DD");
+        let pattern = this.target.filenamePattern || "{{date}}";
+        let filenameBase = pattern.replace("{{date}}", dateString).trim();
+        filenameBase = filenameBase.replace(/[\\/:*?"<>|]/g, "-");
+
+        const folderText =
+          this.target.type === "folder"
+            ? `${this.target.path || "Vault Root"}/`
+            : "Current Folder/";
+
+        chipContainer.createSpan({ text: `${folderText}${filenameBase}.md` });
+      } catch {
+        chipContainer.createSpan({ text: "Invalid date format" });
+      }
     }
   }
 
