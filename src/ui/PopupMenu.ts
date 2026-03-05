@@ -27,7 +27,7 @@ export class PopupMenu {
 
       // Icon
       const iconSpan = item.createSpan({ cls: "popup-icon" });
-      setIcon(iconSpan, this.getIconForType(target.type));
+      setIcon(iconSpan, target.icon || this.getIconForType(target.type));
       if (target.color) iconSpan.style.color = target.color;
 
       // Label
