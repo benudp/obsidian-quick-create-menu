@@ -34,15 +34,17 @@ export default class QuickNotePlugin extends Plugin {
 
     // Global Document Click: Closes the popup if you click outside of it while it is pinned
     this.registerDomEvent(document, "click", (e: MouseEvent) => {
-      document.querySelectorAll('.quick-note-container').forEach(container => {
-        if (!container.contains(e.target as Node)) {
-          if ((container as HTMLElement).dataset.pinned === "true") {
-            (container as HTMLElement).dataset.pinned = "false";
-            const popup = container.querySelector('.quick-note-popup');
-            if (popup) popup.removeClass("is-visible");
+      document
+        .querySelectorAll(".quick-note-container")
+        .forEach((container) => {
+          if (!container.contains(e.target as Node)) {
+            if ((container as HTMLElement).dataset.pinned === "true") {
+              (container as HTMLElement).dataset.pinned = "false";
+              const popup = container.querySelector(".quick-note-popup");
+              if (popup) popup.removeClass("is-visible");
+            }
           }
-        }
-      });
+        });
     });
   }
 
@@ -78,7 +80,8 @@ export default class QuickNotePlugin extends Plugin {
         if (this.iconElements.has(leaf)) return;
 
         // @ts-ignore
-        const viewActions = leaf.view.containerEl.querySelector(".view-actions");
+        const viewActions =
+          leaf.view.containerEl.querySelector(".view-actions");
 
         if (viewActions) {
           // 1. Create Wrapper

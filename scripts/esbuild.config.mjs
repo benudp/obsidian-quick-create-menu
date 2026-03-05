@@ -39,7 +39,7 @@ GENERATED FILE - DO NOT EDIT styles.css
             await fs.writeFile(outFile, HEADER + "\n\n" + css);
           }
 
-          console.log("✔ styles.css built");
+          // console.log("✔ styles.css built");
         } catch {}
       });
     },
