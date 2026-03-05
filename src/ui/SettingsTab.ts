@@ -3,6 +3,7 @@ import QuickNotePlugin from "../main";
 import { TargetEditModal } from "../modals/TargetEditModal";
 import { NoteTarget } from "../types";
 import Sortable from "sortablejs";
+import { ConfirmDeleteModal } from "src/modals/ConfirmDeleteModal";
 
 export class QuickNoteSettingTab extends PluginSettingTab {
   plugin: QuickNotePlugin;
@@ -130,10 +131,13 @@ export class QuickNoteSettingTab extends PluginSettingTab {
           btn
             .setIcon("trash")
             .setTooltip("Delete")
-            .onClick(async () => {
-              this.plugin.settings.targets.splice(index, 1);
-              await this.plugin.saveSettings();
-              this.display();
+            .onClick(() => {
+              new ConfirmDeleteModal(this.app, target.label, async () => {
+                this.plugin.settings.targets.splice(index, 1);
+                await this.plugin.saveSettings();
+                this.display();
+                new Notice(`Deleted "${target.label}"`);
+              }).open();
             });
           btn.extraSettingsEl.addClass("quick-note-delete-btn");
         });

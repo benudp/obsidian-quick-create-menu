@@ -31,7 +31,7 @@ export class IconSuggestModal extends Modal {
     });
 
     this.gridContainer = contentEl.createDiv("icon-picker-grid");
-    
+
     // Initial render
     this.renderIcons(this.allIcons);
     this.searchInput.focus();
@@ -47,7 +47,7 @@ export class IconSuggestModal extends Modal {
 
   renderIcons(icons: string[]) {
     this.gridContainer.empty();
-    
+
     if (icons.length === 0) {
       this.gridContainer.createDiv({
         cls: "icon-picker-empty",
@@ -63,7 +63,7 @@ export class IconSuggestModal extends Modal {
     iconsToRender.forEach((iconId) => {
       const iconButton = this.gridContainer.createDiv("icon-picker-item");
       const iconEl = iconButton.createDiv("icon-picker-item-icon");
-      
+
       setIcon(iconEl, iconId);
       setTooltip(iconButton, iconId);
 

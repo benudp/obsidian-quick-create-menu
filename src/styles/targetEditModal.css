@@ -1,4 +1,3 @@
-
 /* Ensure the modal spans height correctly for the sticky footer */
 .oqcm-modal-v2 {
   display: flex;
@@ -6,7 +5,7 @@
   height: 90%;
   padding: 12px;
   padding-bottom: 0 !important;
-  padding-left: 0 !important;  /* NEW: Strip native left padding */
+  padding-left: 0 !important; /* NEW: Strip native left padding */
   padding-right: 0 !important; /* NEW: Strip native right padding */
   gap: 16px; /* Spacing between cards */
 }
@@ -19,9 +18,10 @@
   padding: 4px 20px 20px 20px;
 }
 
-.oqcm-card, .oqcm-preview-area {
+.oqcm-card,
+.oqcm-preview-area {
   /* Uses Obsidian's native variable with a 24px fallback */
-  margin-left: var(--size-4-5, 24px); 
+  margin-left: var(--size-4-5, 24px);
   margin-right: var(--size-4-5, 24px);
 }
 .oqcm-card .setting-item {
@@ -110,12 +110,12 @@
 /* Make the icon button a clean, perfectly proportioned square */
 .oqcm-icon-btn {
   height: 44px; /* Matches Obsidian's default dropdown/input height */
-  width: 44px; 
+  width: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 12px;
-  
+
   /* Use native Obsidian interactive variables */
   background-color: var(--interactive-normal);
   border: 1px solid var(--background-modifier-border);
@@ -146,12 +146,12 @@
 .oqcm-footer {
   position: sticky;
   bottom: 0;
-  
-  margin: auto 0 0 0; 
-  
+
+  margin: auto 0 0 0;
+
   /* Apply the native padding back inside the footer */
   padding: 16px;
-  
+
   background-color: var(--background-secondary);
   border-top: 0px solid var(--background-modifier-border);
   display: flex;
