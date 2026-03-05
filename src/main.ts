@@ -34,21 +34,24 @@ export default class QuickNotePlugin extends Plugin {
 
     // Global Document Click: Closes the popup if you click outside of it while it is pinned
     this.registerDomEvent(document, "click", (e: MouseEvent) => {
-      document
-        .querySelectorAll(".quick-note-container")
-        .forEach((container) => {
-          if (!container.contains(e.target as Node)) {
-            if ((container as HTMLElement).dataset.pinned === "true") {
-              (container as HTMLElement).dataset.pinned = "false";
-              const popup = container.querySelector(".quick-note-popup");
-              if (popup) popup.removeClass("is-visible");
-            }
+      document.querySelectorAll('.quick-note-container').forEach(container => {
+        if (!container.contains(e.target as Node)) {
+          if ((container as HTMLElement).dataset.pinned === "true") {
+            (container as HTMLElement).dataset.pinned = "false";
+            const popup = container.querySelector('.quick-note-popup');
+            if (popup) popup.removeClass("is-visible");
           }
-        });
+        }
+      });
     });
   }
 
   onunload() {
+    this.removeHeaderIcons();
+  }
+
+  // Helper method to safely remove all injected UI
+  removeHeaderIcons() {
     this.app.workspace.iterateAllLeaves((leaf) => {
       const el = this.iconElements.get(leaf);
       if (el) {
@@ -58,8 +61,16 @@ export default class QuickNotePlugin extends Plugin {
     });
   }
 
-  refreshHeaderIcons() {
-    if (!this.settings.showInHeader) return;
+  // Added forceRebuild parameter to rebuild stale menus
+  refreshHeaderIcons(forceRebuild: boolean = false) {
+    if (forceRebuild) {
+      this.removeHeaderIcons();
+    }
+
+    if (!this.settings.showInHeader) {
+      this.removeHeaderIcons();
+      return;
+    }
 
     this.app.workspace.iterateAllLeaves((leaf) => {
       const viewType = leaf.view.getViewType();
@@ -67,8 +78,7 @@ export default class QuickNotePlugin extends Plugin {
         if (this.iconElements.has(leaf)) return;
 
         // @ts-ignore
-        const viewActions =
-          leaf.view.containerEl.querySelector(".view-actions");
+        const viewActions = leaf.view.containerEl.querySelector(".view-actions");
 
         if (viewActions) {
           // 1. Create Wrapper
@@ -99,5 +109,7 @@ export default class QuickNotePlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+    // Force the UI to rebuild instantly whenever settings are changed!
+    this.refreshHeaderIcons(true);
   }
 }
