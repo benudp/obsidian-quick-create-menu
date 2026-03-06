@@ -32,7 +32,13 @@ export default class QuickNotePlugin extends Plugin {
       }),
     );
 
-    // Global Document Click: Closes the popup if you click outside of it while it is pinned
+    // NEW: Re-inject icons when a new file is opened
+    this.registerEvent(
+      this.app.workspace.on("file-open", () => {
+        this.refreshHeaderIcons();
+      }),
+    );
+
     this.registerDomEvent(document, "click", (e: MouseEvent) => {
       document
         .querySelectorAll(".quick-note-container")
@@ -52,7 +58,6 @@ export default class QuickNotePlugin extends Plugin {
     this.removeHeaderIcons();
   }
 
-  // Helper method to safely remove all injected UI
   removeHeaderIcons() {
     this.app.workspace.iterateAllLeaves((leaf) => {
       const el = this.iconElements.get(leaf);
@@ -63,7 +68,6 @@ export default class QuickNotePlugin extends Plugin {
     });
   }
 
-  // Added forceRebuild parameter to rebuild stale menus
   refreshHeaderIcons(forceRebuild: boolean = false) {
     if (forceRebuild) {
       this.removeHeaderIcons();
@@ -77,13 +81,22 @@ export default class QuickNotePlugin extends Plugin {
     this.app.workspace.iterateAllLeaves((leaf) => {
       const viewType = leaf.view.getViewType();
       if (viewType === "markdown" || viewType === "empty") {
-        if (this.iconElements.has(leaf)) return;
-
         // @ts-ignore
         const viewActions =
           leaf.view.containerEl.querySelector(".view-actions");
 
         if (viewActions) {
+          // FIX: Check if the element exists AND is actually still attached to the DOM
+          const existingWrapper = this.iconElements.get(leaf);
+          if (existingWrapper && viewActions.contains(existingWrapper)) {
+            return; // It's still there, do nothing
+          }
+
+          // If it was destroyed by Obsidian (e.g. switching views), clean up the cache
+          if (existingWrapper) {
+            this.iconElements.delete(leaf);
+          }
+
           // 1. Create Wrapper
           const wrapper = viewActions.createDiv({
             cls: "quick-note-container",
@@ -112,7 +125,6 @@ export default class QuickNotePlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
-    // Force the UI to rebuild instantly whenever settings are changed!
     this.refreshHeaderIcons(true);
   }
 }

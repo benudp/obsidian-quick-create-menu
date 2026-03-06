@@ -12,58 +12,66 @@ export class PopupMenu {
   }
 
   attach(wrapper: HTMLElement, btn: HTMLElement, targets: NoteTarget[]) {
-    // 1. Create the Popup container inside the wrapper
     const popup = wrapper.createDiv({ cls: "quick-note-popup" });
-
-    // Store pinned state in the DOM so the global document click can access it
     wrapper.dataset.pinned = "false";
     let hideTimeout: number | null = null;
 
-    // 2. Populate Items
     targets.forEach((target) => {
       if (!target.enabled) return;
 
       const item = popup.createDiv({ cls: "quick-note-popup-item" });
 
-      // Icon
       const iconSpan = item.createSpan({ cls: "popup-icon" });
-      setIcon(iconSpan, target.icon || this.getIconForType(target.type));
+      setIcon(iconSpan, this.getIconForType(target.type));
       if (target.color) iconSpan.style.color = target.color;
 
-      // Label
       const labelSpan = item.createSpan({ text: target.label });
       if (target.color) labelSpan.style.color = target.color;
 
-      // Click Handler for executing the action
       item.addEventListener("click", (e) => {
         e.stopPropagation();
         this.fileCreator.executeCreate(target);
-
-        // Unpin and hide the menu after executing
         wrapper.dataset.pinned = "false";
         popup.removeClass("is-visible");
       });
     });
 
-    // 3. Hover logic
+    // NEW: Safe display function that checks for window overflow
+    const showPopupSafely = () => {
+      popup.addClass("is-visible");
+
+      // Clear any inline styles first so the CSS default (centered) applies
+      popup.style.left = "";
+      popup.style.right = "";
+      popup.style.transform = "";
+
+      // Measure the menu's bounding box
+      const rect = popup.getBoundingClientRect();
+
+      // If the right edge goes past the screen width (leaving a 12px safety gap)
+      if (rect.right > window.innerWidth - 12) {
+        popup.style.left = "auto";
+        popup.style.right = "-40px"; // Align to the right edge of the wrapper
+        popup.style.transform = "none";
+      }
+    };
+
     wrapper.addEventListener("mouseenter", () => {
       if (hideTimeout !== null) {
         window.clearTimeout(hideTimeout);
         hideTimeout = null;
       }
-      popup.addClass("is-visible");
+      showPopupSafely();
     });
 
     wrapper.addEventListener("mouseleave", () => {
-      // Only start the hide timeout if it's not pinned
       if (wrapper.dataset.pinned !== "true") {
         hideTimeout = window.setTimeout(() => {
           popup.removeClass("is-visible");
-        }, 300); // 300ms delay like Minidoro
+        }, 300);
       }
     });
 
-    // 4. Click to Pin logic
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const isPinned = wrapper.dataset.pinned === "true";
@@ -73,7 +81,7 @@ export class PopupMenu {
         popup.removeClass("is-visible");
       } else {
         wrapper.dataset.pinned = "true";
-        popup.addClass("is-visible");
+        showPopupSafely();
       }
     });
   }
