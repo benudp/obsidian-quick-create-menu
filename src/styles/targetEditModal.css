@@ -85,10 +85,11 @@
 }
 
 .oqcm-preview-chip-icon svg {
-  width: 18px;
-  height: 18px;
 }
-
+.oqcm-icon-svg {
+  height: 24px;
+  width: 24px;
+}
 .oqcm-preview-subtext {
   margin-top: 12px;
   font-size: var(--font-ui-small);

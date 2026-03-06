@@ -46,7 +46,7 @@ export class TargetEditModal extends Modal {
       id: Date.now().toString(),
       label: "New Action",
       type: "folder",
-      icon: "file",
+      icon: "folder",
       color: "",
       isSystem: false,
       path: "",
@@ -230,10 +230,15 @@ export class TargetEditModal extends Modal {
     }
 
     /* =========================================
-       LIVE PREVIEW AREA
+       FILENAME PREVIEW AREA
        ========================================= */
-    this.previewDiv = contentEl.createDiv("oqcm-preview-area");
-    this.updatePreview();
+    // Only build and show the preview block if it's NOT a command
+    if (this.target.type !== "obsidian-command") {
+      this.previewDiv = contentEl.createDiv("oqcm-preview-area");
+      this.updatePreview();
+    } else {
+      this.previewDiv = null; // Clear it out just in case
+    }
 
     /* =========================================
        FOOTER
@@ -271,53 +276,45 @@ export class TargetEditModal extends Modal {
     if (!this.iconPreviewEl) return;
     this.iconPreviewEl.empty();
     const inner = this.iconPreviewEl.createDiv("oqcm-icon-svg");
-    setIcon(inner, this.target.icon || "file");
+    setIcon(inner, this.target.icon || "folder");
     inner.style.color = this.target.color || "var(--text-normal)";
     this.updatePreview(); // Update preview to reflect new icon/color
   }
 
   updatePreview() {
+    // If this is a command, previewDiv is null, so this safely bails out
     if (!this.previewDiv) return;
     this.previewDiv.empty();
 
     const titleEl = this.previewDiv.createEl("div", {
       cls: "oqcm-preview-title",
-      text: "Live Preview",
+      text: "Filename Preview",
     });
 
     const chipContainer = this.previewDiv.createDiv("oqcm-preview-chip");
 
     // Add icon to chip
     const iconSpan = chipContainer.createSpan("oqcm-preview-chip-icon");
-    setIcon(iconSpan, this.target.icon || "file");
+    setIcon(iconSpan, this.target.icon || "folder");
     iconSpan.style.color = this.target.color || "var(--text-muted)";
 
-    if (this.target.type === "obsidian-command") {
-      chipContainer.createSpan({
-        text: `Execute: ${this.target.label || "Unnamed Action"}`,
-      });
-      this.previewDiv.createEl("div", {
-        cls: "oqcm-preview-subtext",
-        text: `Command ID: ${this.target.commandId || "None selected"}`,
-      });
-    } else {
-      try {
-        const dateString = (window as any)
-          .moment()
-          .format(this.target.dateFormat || "YYYY-MM-DD");
-        let pattern = this.target.filenamePattern || "{{date}}";
-        let filenameBase = pattern.replace("{{date}}", dateString).trim();
-        filenameBase = filenameBase.replace(/[\\/:*?"<>|]/g, "-");
+    // Command logic is completely gone since we don't render this for commands
+    try {
+      const dateString = (window as any)
+        .moment()
+        .format(this.target.dateFormat || "YYYY-MM-DD");
+      let pattern = this.target.filenamePattern || "{{date}}";
+      let filenameBase = pattern.replace("{{date}}", dateString).trim();
+      filenameBase = filenameBase.replace(/[\\/:*?"<>|]/g, "-");
 
-        const folderText =
-          this.target.type === "folder"
-            ? `${this.target.path || "Vault Root"}/`
-            : "Current Folder/";
+      const folderText =
+        this.target.type === "folder"
+          ? `${this.target.path || "Vault Root"}/`
+          : "Current Folder/";
 
-        chipContainer.createSpan({ text: `${folderText}${filenameBase}.md` });
-      } catch {
-        chipContainer.createSpan({ text: "Invalid date format" });
-      }
+      chipContainer.createSpan({ text: `${folderText}${filenameBase}.md` });
+    } catch {
+      chipContainer.createSpan({ text: "Invalid date format" });
     }
   }
 

@@ -100,7 +100,7 @@
 .quick-note-setting-icon {
   display: flex;
   align-items: center;
-  color: var(--text-accent);
+  color: var(--text-normal);
   margin-right: 10px;
   flex-shrink: 0;
 }

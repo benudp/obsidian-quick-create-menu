@@ -22,7 +22,7 @@ export class PopupMenu {
       const item = popup.createDiv({ cls: "quick-note-popup-item" });
 
       const iconSpan = item.createSpan({ cls: "popup-icon" });
-      setIcon(iconSpan, this.getIconForType(target.type));
+      setIcon(iconSpan, target.icon || this.getIconForType(target.type));
       if (target.color) iconSpan.style.color = target.color;
 
       const labelSpan = item.createSpan({ text: target.label });
